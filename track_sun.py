@@ -1,8 +1,6 @@
-# Solar Tracking script to track the Sun using the mount simulator.
-
 import time as pytime  # Renamed to avoid conflict with astropy's Time class
 import subprocess
-from astropy.coordinates import get_sun, EarthLocation
+from astropy.coordinates import get_sun, EarthLocation, AltAz
 from astropy.time import Time
 import astropy.units as u
 
@@ -25,17 +23,19 @@ class MountControl:
         """Fetch the current equatorial coordinates of the Sun."""
         now = Time.now()  # Current UTC time
         print("Current time:", now)
-        sun = get_sun(now).transform_to('icrs')  # Get the Sun's position and transform to ICRS
-        print("Sun position in ICRS:", sun)
-        solar_ra = sun.ra.hour  # RA in hours
-        solar_dec = sun.dec.deg  # Dec in degrees
-        return solar_ra, solar_dec
+        sun = get_sun(now)
+        altaz_frame = AltAz(obstime=now, location=self.location)
+        sun_altaz = sun.transform_to(altaz_frame)
+        print("Sun position in AltAz:", sun_altaz)
+        solar_az = sun_altaz.az.deg  # Azimuth in degrees
+        solar_alt = sun_altaz.alt.deg  # Altitude in degrees
+        return solar_az, solar_alt
 
     def track_sun(self):
         """Track the Sun by updating mount coordinates periodically."""
-        solar_ra, solar_dec = self.get_sun_coordinates()
-        print(f"Updating target coordinates to RA: {solar_ra}, Dec: {solar_dec}")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={solar_ra};DEC={solar_dec}\"")
+        solar_az, solar_alt = self.get_sun_coordinates()
+        print(f"Updating target coordinates to Azimuth: {solar_az}, Altitude: {solar_alt}")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
 
         print("Slewing to the Sun and starting tracking...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SLEW=ON\"")
