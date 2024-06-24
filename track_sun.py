@@ -1,3 +1,5 @@
+# Tracking script for mount control based on Sun position.
+
 import time as pytime  # Renamed to avoid conflict with astropy's Time class
 import subprocess
 from astropy.coordinates import get_sun, EarthLocation, AltAz
