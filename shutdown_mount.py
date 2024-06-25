@@ -7,7 +7,7 @@ import subprocess
 class MountControl:
     def __init__(self):
         self.indigo_server = 'localhost'
-        self.mount_device = 'Mount Simulator'
+        self.mount_device = 'Mount SynScan'
 
     def run_command(self, command):
         """Execute a shell command and return the output."""
