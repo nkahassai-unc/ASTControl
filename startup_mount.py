@@ -37,9 +37,10 @@ class MountControl:
                 print("Waiting for mount to connect...")
                 time.sleep(5)  # Wait for 5 seconds before checking again
 
-        # Hold off Tracking
-        print("Holding off tracking...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.OFF=ON\"")
+        # Turn tracking off ???
+        # No on!
+        print("Turning tracking on...")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
 
         # Initialize the mount with geographic coordinates
         print("Setting the location...")
@@ -51,12 +52,8 @@ class MountControl:
         # Sync the telescope with home coordinates
         print("Syncing the telescope with home coordinates...")
         home_az = 0.0
-        home_alt = 90.0
+        home_alt = 45.0
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={home_az};ALT={home_alt}\"")
-
-        # Set the tracking rate to Solar
-        print("Setting the solar tracking rate...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACK_RATE.SOLAR=ON\"")
 
         # Turn tracking back on
         print("Turning tracking back on...")
@@ -64,7 +61,6 @@ class MountControl:
         
         print("Mount initialization complete.")
         
-
 
 if __name__ == "__main__":
     mount_control = MountControl()

@@ -51,6 +51,7 @@ class MountControl:
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
 
         # Wait for the telescope to finish slewing
+        
         while True:
             # Get the current azimuth and altitude
             current_az = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
@@ -77,7 +78,19 @@ class MountControl:
         # Slew to the updated coordinates
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
 
-        print("Mount coordinates updated. Waiting for next update...")
+        # Get the current azimuth and altitude
+        current_az = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
+        current_alt = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.ALT\"")
+
+        if abs(current_az - solar_az) < 0.5 and abs(current_alt - solar_alt) < 0.5:  # Assuming a small tolerance
+            print("Mount is on target.")
+            
+        else:
+            print(f"Current Azimuth: {current_az}, Current Altitude: {current_alt}. Waiting for mount to finish slewing...")
+            print("Mount is not on target. Waiting for mount to finish slewing...")
+            pytime.sleep(1)  # Wait for 1 seconds before checking again
+
+        print("Mount position updated. Waiting for next update...")
 
 
 def main():
