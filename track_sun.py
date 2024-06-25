@@ -35,12 +35,12 @@ class MountControl:
 
     def initial_slew(self):
         """Slew the telescope to the Sun and start tracking."""
+        # On coordinate set slew
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SLEW=ON\"")
+        
         # Set the slew rate to maximum
         print("Setting slew rate to maximum...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_SLEW_RATE.MAX=ON\"")
-
-        # On coordinate set slew
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SLEW=ON\"")
 
         # Update the target coordinates
         solar_az, solar_alt = self.get_sun_coordinates()
@@ -52,7 +52,10 @@ class MountControl:
 
         # Wait for the telescope to finish slewing
         while True:
-            current_az, current_alt = self.get_sun_coordinates()
+            # Get the current azimuth and altitude
+            current_az = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
+            current_alt = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.ALT\"")
+
             if abs(current_az - solar_az) < 0.5 and abs(current_alt - solar_alt) < 0.5:  # Assuming a small tolerance
                 print("Mount has finished slewing to the Sun.")
                 

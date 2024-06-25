@@ -53,14 +53,10 @@ class MountControl:
         home_ra = 0.0
         home_dec = 90.0
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
-        
-        # Wait for the mount to sync with the home coordinates
-        time.sleep(3)
-        
+
         # Set the tracking rate to Solar
         print("Setting the solar tracking rate...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACK_RATE.SOLAR=ON\"")
-        time.sleep(3)  
 
         # Turn tracking back on
         print("Turning tracking back on...")
