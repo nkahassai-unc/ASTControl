@@ -24,6 +24,10 @@ class MountControl:
         # Stop tracking
         print("Stopping tracking...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.OFF=ON\"")
+
+        # Set the slew rate to maximum
+        print("Setting slew rate to maximum...")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_SLEW_RATE.MAX=ON\"")
         
         # Slew back to the home position
         home_ra = 0.0
@@ -40,8 +44,12 @@ class MountControl:
         
         # Parse the RA and DEC values from the command output
         # Assuming the output format is "RA=<value>" and "DEC=<value>"
-        current_ra_value = float(current_ra.split('=')[1])
-        current_dec_value = float(current_dec.split('=')[1])
+        try:
+            current_ra_value = float(current_ra)
+            current_dec_value = float(current_dec)
+        except ValueError:
+            print("Error parsing RA and DEC values.")
+            return
 
         if abs(current_ra_value - home_ra) < 0.2 and abs(current_dec_value - home_dec) < 0.2:  # Assuming a small tolerance
             print("Mount is now at the home position.")
