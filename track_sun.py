@@ -48,7 +48,7 @@ class MountControl:
 
         # Slew to the Sun and start tracking
         print("Slewing to the Sun.")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
 
         # Wait for the telescope to finish slewing
         while True:
@@ -75,7 +75,7 @@ class MountControl:
         print(f"Updating target coordinates to Azimuth: {solar_az}, Altitude: {solar_alt}")
 
         # Slew to the updated coordinates
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={solar_az};ALT={solar_alt}\"")
 
         print("Mount coordinates updated. Waiting for next update...")
 

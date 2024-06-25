@@ -50,9 +50,9 @@ class MountControl:
         
         # Sync the telescope with home coordinates
         print("Syncing the telescope with home coordinates...")
-        home_ra = 0.0
-        home_dec = 90.0
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
+        home_az = 0.0
+        home_alt = 90.0
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={home_az};ALT={home_alt}\"")
 
         # Set the tracking rate to Solar
         print("Setting the solar tracking rate...")

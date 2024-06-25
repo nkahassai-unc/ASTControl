@@ -18,12 +18,8 @@ class MountControl:
             print(f"Error executing command: {e.stderr.decode('utf-8').strip()}")
             return None
 
-    def stop_tracking_and_slew_home(self):
+    def slew_home(self):
         """Stop mount tracking and slew back to the home position."""
-
-        # Stop tracking
-        print("Stopping tracking...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.OFF=ON\"")
 
         # Set the slew rate to maximum
         print("Setting slew rate to maximum...")
@@ -35,32 +31,32 @@ class MountControl:
         print("Slewing back to the home position...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
 
-        # Wait for the mount to move to the home position
-        time.sleep(5)  # Adjust the sleep time as necessary
+        # Wait for the telescope to finish slewing
+        while True:
+            # Get the current RA and DEC
+            current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
+            current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
 
-        # Check if the mount is at the home position by getting RA and DEC separately
-        current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
-        current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
-        
-        # Parse the RA and DEC values from the command output
-        # Assuming the output format is "RA=<value>" and "DEC=<value>"
-        try:
-            current_ra_value = float(current_ra)
-            current_dec_value = float(current_dec)
-        except ValueError:
-            print("Error parsing RA and DEC values.")
-            return
+            # Parse the RA and DEC values from the command output
+            try:
+                current_ra_value = float(current_ra.split('=')[1])
+                current_dec_value = float(current_dec.split('=')[1])
+            except ValueError:
+                print("Error parsing RA and DEC values.")
+                return
 
-        if abs(current_ra_value - home_ra) < 0.2 and abs(current_dec_value - home_dec) < 0.2:  # Assuming a small tolerance
-            print("Mount is now at the home position.")
-            self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ABORT_MOTION.ABORT_MOTION=ON\"")
-            print("Motion aborted.")
-        else:
-            print("Mount has not reached the home position yet.")
+            if abs(current_ra_value - home_ra) < 0.2 and abs(current_dec_value - home_dec) < 0.2:  # Assuming a small tolerance
+                print("Mount is now at the home position.")
+                self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ABORT_MOTION.ABORT_MOTION=ON\"")
+                print("Motion aborted.")
+                break
+            else:
+                print(f"Current RA: {current_ra_value}, Current DEC: {current_dec_value}. Waiting for mount to finish slewing...")
+                time.sleep(5)  # Wait for 5 seconds before checking again
 
 def main():
     mount_control = MountControl()
-    mount_control.stop_tracking_and_slew_home()
+    mount_control.slew_home()
 
 if __name__ == "__main__":
     main()
