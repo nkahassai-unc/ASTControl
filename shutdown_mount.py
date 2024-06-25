@@ -26,32 +26,32 @@ class MountControl:
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_SLEW_RATE.MAX=ON\"")
         
         # Slew back to the home position
-        home_ra = 0.0
-        home_dec = 90.0
+        home_az = 0.0
+        home_alt = 45.0
         print("Slewing back to the home position...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={home_az};ALT={home_alt}\"")
 
         # Wait for the telescope to finish slewing
         while True:
-            # Get the current RA and DEC
-            current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
-            current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
+            # Get the current Alt and Az
+            current_az = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
+            current_alt = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.ALT\"")
 
-            # Parse the RA and DEC values from the command output
+            # Parse the Alt and Az values from the command output
             try:
-                current_ra_value = float(current_ra.split('=')[1])
-                current_dec_value = float(current_dec.split('=')[1])
+                current_az_value = float(current_az.split('=')[1])
+                current_alt_value = float(current_alt.split('=')[1])
             except ValueError:
                 print("Error parsing RA and DEC values.")
                 return
 
-            if abs(current_ra_value - home_ra) < 0.2 and abs(current_dec_value - home_dec) < 0.2:  # Assuming a small tolerance
+            if abs(current_az_value - home_az) < 0.2 and abs(current_alt_value - home_alt) < 0.2:  # Assuming a small tolerance
                 print("Mount is now at the home position.")
-                self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ABORT_MOTION.ABORT_MOTION=ON\"")
-                print("Motion aborted.")
+                #self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ABORT_MOTION.ABORT_MOTION=ON\"")
+                #print("Motion aborted.")
                 break
             else:
-                print(f"Current RA: {current_ra_value}, Current DEC: {current_dec_value}. Waiting for mount to finish slewing...")
+                print(f"Current AZ: {current_az_value}, Current ALT: {current_alt_value}. Waiting for mount to finish slewing...")
                 time.sleep(5)  # Wait for 5 seconds before checking again
 
 def main():
