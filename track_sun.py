@@ -28,7 +28,7 @@ class MountControl:
         sun = get_sun(now)
         altaz_frame = AltAz(obstime=now, location=self.location)
         sun_altaz = sun.transform_to(altaz_frame)
-        print("Sun position in AltAz:", sun_altaz)
+        # print("Sun position in AltAz:", sun_altaz)
         solar_az = sun_altaz.az.deg  # Azimuth in degrees
         solar_alt = sun_altaz.alt.deg  # Altitude in degrees
         return solar_az, solar_alt
@@ -54,8 +54,16 @@ class MountControl:
         
         while True:
             # Get the current azimuth and altitude
-            current_az = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
-            current_alt = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.ALT\"")
+            current_az_str = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ\"")
+            current_alt_str = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.ALT\"")
+
+            # Convert the current azimuth and altitude from string to float
+            try:
+                current_az = float(current_az_str)
+                current_alt = float(current_alt_str)
+            except ValueError:
+                print(f"Error converting azimuth '{current_az_str}' or altitude '{current_alt_str}' to float.")
+                break  # or continue, depending on desired error handling
 
             if abs(current_az - solar_az) < 0.5 and abs(current_alt - solar_alt) < 0.5:  # Assuming a small tolerance
                 print("Mount has finished slewing to the Sun.")

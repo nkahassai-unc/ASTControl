@@ -60,7 +60,6 @@ class MountControl:
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
         
         print("Mount initialization complete.")
-        
 
 if __name__ == "__main__":
     mount_control = MountControl()
