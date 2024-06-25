@@ -44,8 +44,6 @@ class MountControl:
         # Initialize the mount with geographic coordinates
         print("Setting the location...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.GEOGRAPHIC_COORDINATES.LATITUDE={self.latitude};LONGITUDE={self.longitude};ELEVATION={self.altitude}\"")
-        # Wait for the mount to sync with the location
-        # Similar loop as above to check if location is set
 
         # On coordinate set sync
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SYNC=ON\"")
@@ -58,12 +56,11 @@ class MountControl:
         
         # Wait for the mount to sync with the home coordinates
         time.sleep(3)
-        # Similar loop as above to check if home coordinates are synced
         
         # Set the tracking rate to Solar
         print("Setting the solar tracking rate...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACK_RATE.SOLAR=ON\"")
-        time.sleep(3)  # Wait for the mount to set the tracking rate
+        time.sleep(3)  
 
         # Turn tracking back on
         print("Turning tracking back on...")
