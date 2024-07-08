@@ -1,0 +1,6 @@
+AST Control To Do
+- connect weather_monitor with track_sun
+- finish file_handler
+- investigate startup_mount sync 
+- print statements at boot & shut down
+- 
