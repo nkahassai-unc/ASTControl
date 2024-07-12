@@ -1,5 +1,5 @@
 # Weather Monitor script to check weather conditions 
-# and initiate shutdown if rain is likely.
+# Initiate shutdown if rain is likely.
 
 import requests
 import time

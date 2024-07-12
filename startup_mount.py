@@ -66,6 +66,10 @@ class MountControl:
         # On coordinate set sync
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SYNC=ON\"")
         
+        # Set tracking to solar rate
+        print("Setting tracking to solar rate...")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACK_RATE.SOLAR=ON\"")
+
         # Turning tracking on
         print("Turning tracking on...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
