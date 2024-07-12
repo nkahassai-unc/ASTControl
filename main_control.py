@@ -15,10 +15,12 @@ def main():
     print("Mount initialization complete.")
 
     # Start the tracking script
+    print("Starting tracking.")
     tracking_thread = threading.Thread(target=run_script, args=('track_sun.py',))
     tracking_thread.start()
 
     # Start the weather monitoring script
+    print("Starting Weather Monitor.")
     weather_thread = threading.Thread(target=run_script, args=('weather_monitor.py',))
     weather_thread.start()
 

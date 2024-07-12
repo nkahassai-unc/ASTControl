@@ -1,4 +1,4 @@
-# Script to kill the Indigo server and the Indigo Web Server
+# Script to kill Indigo server and Indigo Web Server
 
 import subprocess
 
@@ -7,7 +7,6 @@ def run_command(command):
     output, error = process.communicate()
     return output.decode(), error.decode()
 
-# Modified to run your specific commands
 commands = ["sudo pkill -f indigo_server", "sudo pkill -f indigo_wo"]
 for command in commands:
     output, error = run_command(command)

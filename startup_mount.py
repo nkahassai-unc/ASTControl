@@ -1,16 +1,19 @@
 # Startup script to initialize the mount with location and home coordinates.
 
 import subprocess
-import time
+import time as pytime # Renamed to avoid conflict with astropy's Time class
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
+from astropy.time import Time
+import astropy.units as u
 
 class MountControl:
     def __init__(self):
+        """Mount & location settings."""
         self.indigo_server = 'localhost'
-        self.mount_device = 'Mount SynScan'
+        self.mount_device = 'Mount PMC Eight'
         self.latitude = 35.913200 #N 
         self.longitude = 280.944153 #E 
         self.altitude = 80 # meters
-
         self.initialize_mount()
 
     def run_command(self, command):
@@ -22,7 +25,26 @@ class MountControl:
             print(f"Error executing command: {e.stderr.decode('utf-8')}")
             return None
 
+    def get_home_coordinates(self):
+        """Calculate home equatorial coordinates."""
+        now = Time.now()  # Current UTC time
+        # Chapel Hill, NC coordinates
+        self.location = EarthLocation(lat=35.9132*u.deg, lon=-79.0558*u.deg, height=80*u.m)
+        # Define the AltAz frame for the given time and location
+        altaz_frame = AltAz(obstime=now, location=self.location)
+        # Due west azimuth is 270 degrees, and horizon altitude is 0 degrees
+        az = 270 * u.deg
+        alt = 0 * u.deg
+        # Create a SkyCoord object for the given alt/az
+        horizontal_coord = SkyCoord(alt=alt, az=az, frame=altaz_frame)
+        # Convert horizontal coordinates to equatorial coordinates (ICRS frame)
+        equatorial_coord = horizontal_coord.transform_to(ICRS) 
+        home_ra = equatorial_coord.ra.deg
+        home_dec = equatorial_coord.dec.deg
+        return home_ra, home_dec
+    
     def initialize_mount(self):
+        """Initalize mount."""
         # Connect the mount
         print("Connecting to the mount...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.CONNECTION.CONNECTED=ON\"")
@@ -35,12 +57,7 @@ class MountControl:
                 break
             else:
                 print("Waiting for mount to connect...")
-                time.sleep(5)  # Wait for 5 seconds before checking again
-
-        # Turn tracking off ???
-        # No on!
-        print("Turning tracking on...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
+                pytime.sleep(5)  # Wait 5 seconds before checking again
 
         # Initialize the mount with geographic coordinates
         print("Setting the location...")
@@ -49,16 +66,16 @@ class MountControl:
         # On coordinate set sync
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SYNC=ON\"")
         
-        # Sync the telescope with home coordinates
-        print("Syncing the telescope with home coordinates...")
-        home_az = 0.0
-        home_alt = 45.0
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_HORIZONTAL_COORDINATES.AZ={home_az};ALT={home_alt}\"")
-
-        # Turn tracking back on
-        print("Turning tracking back on...")
+        # Turning tracking on
+        print("Turning tracking on...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
+
+        # Calculate home coordinates
+        home_ra, home_dec = self.get_home_coordinates()
         
+        # Sync the telescope with home equatorial coordinates
+        print("Syncing the telescope with home coordinates...")
+        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
         print("Mount initialization complete.")
 
 if __name__ == "__main__":
