@@ -9,7 +9,7 @@ class WeatherMonitor:
     def __init__(self):
         self.weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
         
-        #OpenWeatherMap API Key
+        # OpenWeatherMap API Key
         self.weather_api_key = '10b2f1d4a200b534bb2d4bf69bddcace'
         self.latitude = 35.9132  # Latitude of Chapel Hill, NC
         self.longitude = -79.0558  # Longitude of Chapel Hill, NC
@@ -31,12 +31,22 @@ class WeatherMonitor:
                 params={
                     'lat': self.latitude,
                     'lon': self.longitude,
-                    'appid': self.weather_api_key
+                    'appid': self.weather_api_key,
+                    'units': 'metric'  # Use 'imperial' for Fahrenheit
                 }
             )
             data = response.json()
-
+            
+            # Parsing the weather conditions
             weather_conditions = [condition['main'].lower() for condition in data['weather']]
+            temperature = data['main']['temp']
+            rain_chance = data.get('rain', {}).get('1h', 0)
+            sky_conditions = 'clear' if 'clear' in weather_conditions else 'not clear'
+
+            print(f"Temperature: {temperature}°C")
+            print(f"Chance of rain: {rain_chance} mm in the last hour")
+            print(f"Sky conditions: {sky_conditions}")
+
             if 'rain' in weather_conditions:
                 return True
             return False
