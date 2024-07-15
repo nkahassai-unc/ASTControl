@@ -9,7 +9,7 @@ import astropy.units as u
 class MountControl:
     def __init__(self):
         """Initialize Mount & Location."""
-        self.indigo_server = 'localhost'
+        #self.indigo_server = 'localhost'
         self.mount_device = 'Mount PMC Eight'
         self.location = EarthLocation(lat=35.9132*u.deg, lon=-79.0558*u.deg, height=80*u.m)  # Chapel Hill, NC coordinates
 
@@ -60,7 +60,7 @@ class MountControl:
             current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
 
             # If the mount is within a small tolerance of the Sun's position, set the slew rate to guide
-            if abs(current_ra - solar_ra) < 0.5 and abs(current_dec - solar_dec) < 0.5:
+            if abs(current_ra - solar_ra) < 1.0 and abs(current_dec - solar_dec) < 1.0:
                 print("Mount has finished slewing to the Sun.")
                 
                 # Set the slew rate to guide
@@ -103,7 +103,7 @@ def main():
     # After initial positioning, continuously update the Sun's position
     while True:
         mount_control.update_sun()
-        pytime.sleep(10)  # Update every 10 seconds
+        pytime.sleep(5)  # Update every 5 seconds
 
 if __name__ == "__main__":
     main()

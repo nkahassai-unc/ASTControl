@@ -61,9 +61,11 @@ class MountControl:
                 print("Mount is now at the home position.")
                 #self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ABORT_MOTION.ABORT_MOTION=ON\"")
                 #print("Motion aborted.")
+                self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=OFF\"")
+                self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.OFF=ON\"")
                 break
             else:
-                print(f"Current RA: {current_ra}, Current ALT: {current_dec}. Waiting for mount to finish slewing...")
+                print(f"Current RA: {current_ra}, Current DEC: {current_dec}. Waiting for mount to finish slewing...")
                 pytime.sleep(3)  # Wait for 3 seconds before checking again
 
     def close_dome(self):

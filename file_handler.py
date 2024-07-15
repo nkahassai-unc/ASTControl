@@ -6,10 +6,9 @@ import time
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import threading
 
 # Configuration
-WATCHED_DIR = 'Q:\\fc_test\\solar_capture'  # Folder to monitor for new files
+BASE_WATCHED_DIR = 'Q:\\fc_test\\solarcaptureii'  # Base folder to monitor for new files
 DEST_BASE_DIR = 'C:\\Users\\Sundisk\\Desktop\\preprocess'  # Main directory to copy files into
 STABILITY_CHECK_TIME = 3  # Seconds to wait for the file to stabilize in size
 
@@ -28,8 +27,8 @@ class CustomHandler(FileSystemEventHandler):
 
     def on_created(self, event):
         """Handle new file creation event."""
-        if not event.is_directory:
-            print(f"Detected new file: {event.src_path}")
+        if not event.is_directory and event.src_path.lower().endswith('.avi'):
+            print(f"Detected new AVI file: {event.src_path}")
             if self.is_file_write_complete(event.src_path):
                 now = datetime.now()
                 # Reset file count if it's a new day
@@ -59,6 +58,13 @@ class CustomHandler(FileSystemEventHandler):
 
 def main():
     """Main function to start the observer."""
+    today_str = datetime.now().strftime('%d%m%y')
+    WATCHED_DIR = os.path.join(BASE_WATCHED_DIR, today_str)
+
+    if not os.path.exists(WATCHED_DIR):
+        print(f"Error: The directory {WATCHED_DIR} does not exist.")
+        return
+
     event_handler = CustomHandler()
     observer = Observer()
     observer.schedule(event_handler, WATCHED_DIR, recursive=False)
@@ -69,7 +75,6 @@ def main():
             time.sleep(1)
     except KeyboardInterrupt:
         observer.stop()
-    observer.stop()
     observer.join()
 
 if __name__ == "__main__":

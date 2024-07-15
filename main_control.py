@@ -1,5 +1,5 @@
-# Main control script to run the startup, tracking, 
-# weather monitoring, and shutdown scripts.
+# Main control script to run 
+# the startup, tracking, weather monitoring, and shutdown scripts.
 
 import threading
 import subprocess

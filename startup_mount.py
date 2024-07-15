@@ -9,7 +9,7 @@ import astropy.units as u
 class MountControl:
     def __init__(self):
         """Mount & location settings."""
-        self.indigo_server = 'localhost'
+        # self.indigo_server = 'localhost'
         self.mount_device = 'Mount PMC Eight'
         self.latitude = 35.913200 #N 
         self.longitude = 280.944153 #E 
@@ -27,7 +27,8 @@ class MountControl:
 
     def get_home_coordinates(self):
         """Calculate home equatorial coordinates."""
-        now = Time.now()  # Current UTC time
+        # Current UTC time
+        now = Time.now() 
         # Chapel Hill, NC coordinates
         self.location = EarthLocation(lat=35.9132*u.deg, lon=-79.0558*u.deg, height=80*u.m)
         # Define the AltAz frame for the given time and location
@@ -57,15 +58,14 @@ class MountControl:
                 break
             else:
                 print("Waiting for mount to connect...")
-                pytime.sleep(5)  # Wait 5 seconds before checking again
-
+                pytime.sleep(3)  # Wait 3 seconds before checking again
+        
         # Initialize the mount with geographic coordinates
         print("Setting the location...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.GEOGRAPHIC_COORDINATES.LATITUDE={self.latitude};LONGITUDE={self.longitude};ELEVATION={self.altitude}\"")
-
+        
         # On coordinate set sync
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.SYNC=ON\"")
-        
         # Set tracking to solar rate
         print("Setting tracking to solar rate...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACK_RATE.SOLAR=ON\"")
@@ -73,6 +73,7 @@ class MountControl:
         # Turning tracking on
         print("Turning tracking on...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=ON\"")
+        self.run_command(f'indigo_prop_tool set "{self.mount_device}.MOUNT_TRACKING.OFF=OFF\"')
 
         # Calculate home coordinates
         home_ra, home_dec = self.get_home_coordinates()
