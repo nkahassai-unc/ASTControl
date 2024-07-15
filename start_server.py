@@ -7,7 +7,7 @@ def run_command(command):
     output, error = process.communicate()
     return output.decode(), error.decode()
 
-commands = ["sudo indigo_server"]
+commands = ["indigo_server"]
 for command in commands:
     output, error = run_command(command)
     print(f"Running command: {command}")
