@@ -39,9 +39,21 @@ class WeatherMonitor:
             
             # Parsing the weather conditions
             weather_conditions = [condition['main'].lower() for condition in data['weather']]
+            detailed_conditions = [condition['description'] for condition in data['weather']]
             temperature = data['main']['temp']
             rain_chance = data.get('rain', {}).get('1h', 0)
-            sky_conditions = 'clear' if 'clear' in weather_conditions else 'not clear'
+
+            # Determine if the sky is clear or not based on detailed conditions
+            if 'clear' in weather_conditions:
+                sky_conditions = 'clear'
+            elif 'clouds' in weather_conditions:
+                cloud_cover = next(condition['description'] for condition in data['weather'] if condition['main'].lower() == 'clouds')
+                if 'few clouds' in cloud_cover or 'scattered clouds' in cloud_cover:
+                    sky_conditions = 'partly cloudy'
+                else:
+                    sky_conditions = 'cloudy'
+            else:
+                sky_conditions = 'not clear'
 
             print(f"Temperature: {temperature}°C")
             print(f"Chance of rain: {rain_chance} mm in the last hour")
@@ -54,6 +66,7 @@ class WeatherMonitor:
             print(f"Error fetching weather data: {e}")
             return False
 
+
     def monitor_and_shutdown(self):
         """Monitor weather conditions and initiate shutdown if needed."""
         
@@ -61,7 +74,7 @@ class WeatherMonitor:
         while True:
             if self.check_weather():
                 print("Unfavorable weather detected. Initiating shutdown sequence...")
-                self.run_command('python3 shutdown_mount.py')
+                #self.run_command('python3 shutdown_mount.py')
                 break
             time.sleep(900)  # 15 minutes
 
