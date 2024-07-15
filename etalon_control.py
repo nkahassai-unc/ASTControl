@@ -1,4 +1,5 @@
 # Demo of controlling etalons with a GUI
+# WIP - not tested yet, to be tested with the actual hardware
 
 import serial
 import tkinter as tk
