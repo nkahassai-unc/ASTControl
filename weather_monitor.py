@@ -74,6 +74,7 @@ class WeatherMonitor:
         while True:
             if self.check_weather():
                 print("Unfavorable weather detected. Initiating shutdown sequence...")
+                # weather shutdown later on
                 #self.run_command('python3 shutdown_mount.py')
                 break
             time.sleep(900)  # 15 minutes
