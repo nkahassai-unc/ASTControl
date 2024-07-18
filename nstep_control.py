@@ -1,5 +1,4 @@
-# Demo of controlling nSTEP with a GUI
-# WIP - not tested yet, to be tested with the actual hardware
+# Demo of controlling nSTEP focuser with a GUI
 
 import tkinter as tk
 from tkinter import messagebox
@@ -7,6 +6,8 @@ import subprocess
 import time as pytime
 
 class FocuserControl:
+    """Class to control the nSTEP focuser with a GUI."""
+
     def __init__(self, master):
         self.master = master
         self.master.title("nSTEP Focuser Control")
@@ -48,18 +49,15 @@ class FocuserControl:
         # Speed control
         tk.Label(self.master, text="Speed:").grid(row=0, column=0)
         self.speed_var = tk.DoubleVar(value=66.0)
-        self.speed_scale = tk.Scale(self.master, from_=0, to=500, orient=tk.HORIZONTAL, variable=self.speed_var)
+        self.speed_scale = tk.Scale(self.master, from_=0, to=254, orient=tk.HORIZONTAL, variable=self.speed_var)
         self.speed_scale.grid(row=0, column=1)
         tk.Button(self.master, text="Set Speed", command=self.set_speed).grid(row=0, column=2)
 
         # Direction control
         tk.Label(self.master, text="Direction:").grid(row=1, column=0)
-        self.move_inward_var = tk.IntVar(value=0)
-        self.move_outward_var = tk.IntVar(value=0)
-        self.move_inward_check = tk.Checkbutton(self.master, text="Inward", variable=self.move_inward_var, command=self.set_direction)
-        self.move_inward_check.grid(row=1, column=1)
-        self.move_outward_check = tk.Checkbutton(self.master, text="Outward", variable=self.move_outward_var, command=self.set_direction)
-        self.move_outward_check.grid(row=1, column=2)
+        self.direction_var = tk.StringVar(value="MOVE_INWARD")
+        tk.Radiobutton(self.master, text="Inward", variable=self.direction_var, value="MOVE_INWARD", command=self.set_direction).grid(row=1, column=1)
+        tk.Radiobutton(self.master, text="Outward", variable=self.direction_var, value="MOVE_OUTWARD", command=self.set_direction).grid(row=1, column=2)
 
         # Steps input
         tk.Label(self.master, text="Steps:").grid(row=2, column=0)
@@ -85,14 +83,13 @@ class FocuserControl:
         self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_SPEED.SPEED={speed}\"")
 
     def set_direction(self):
-        if self.move_inward_var.get():
+        direction = self.direction_var.get()
+        if direction == "MOVE_INWARD":
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_INWARD=ON\"")
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_OUTWARD=OFF\"")
-            self.move_outward_check.deselect()
-        elif self.move_outward_var.get():
+        else:
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_INWARD=OFF\"")
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_OUTWARD=ON\"")
-            self.move_inward_check.deselect()
 
     def move_steps(self):
         steps = self.steps_entry.get()
