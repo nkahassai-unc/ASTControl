@@ -1,5 +1,4 @@
-# Main control script to run 
-# the startup, tracking, weather monitoring, and shutdown scripts.
+# Main control script to run the startup, tracking, weather monitoring, and shutdown scripts.
 # GUI and command-line modes are supported.
 
 import argparse
@@ -7,69 +6,109 @@ import threading
 import subprocess
 import tkinter as tk
 from tkinter import scrolledtext
+import queue
+import sys
 
-def run_script(script_name, output_box=None):
-    """Run a script as a subprocess and optionally display output in a GUI box."""
-    process = subprocess.Popen(['python', script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    stdout, stderr = process.communicate()
+class ScriptRunner:
+    """Class to run a script in a separate thread and display output in a GUI."""
+    def __init__(self, root, script_name):
+        self.script_name = script_name
+        self.message_queue = queue.Queue()
+        self.create_widgets(root)
     
-    if output_box:
-        output_box.insert(tk.END, f"Output of {script_name}:\n{stdout}\n")
+    def create_widgets(self, root):
+        self.frame = tk.Frame(root)
+        self.frame.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        self.button = tk.Button(self.frame, text=f"Run {self.script_name}", command=self.run_script)
+        self.button.pack(side=tk.TOP, padx=5, pady=5)
+        
+        self.output_box = scrolledtext.ScrolledText(self.frame, width=60, height=7)
+        self.output_box.pack(side=tk.TOP, padx=10, pady=5)
+        
+        self.output_box.after(100, self.process_queue)
+    
+    def run_script(self):
+        threading.Thread(target=self.execute_script).start()
+    
+    def execute_script(self):
+        try:
+            command = f'{sys.executable} -u {self.script_name}'  # Run in unbuffered mode
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, bufsize=1, universal_newlines=True)
+            
+            def enqueue_output(out, queue):
+                for line in iter(out.readline, ''):
+                    queue.put(line)
+                out.close()
+
+            threading.Thread(target=enqueue_output, args=(process.stdout, self.message_queue)).start()
+            threading.Thread(target=enqueue_output, args=(process.stderr, self.message_queue)).start()
+
+            process.wait()
+        except Exception as e:
+            self.message_queue.put(f"Exception occurred while running {self.script_name}:\n{str(e)}\n")
+    
+    def process_queue(self):
+        while not self.message_queue.empty():
+            message = self.message_queue.get_nowait()
+            self.output_box.insert(tk.END, message)
+            self.output_box.see(tk.END)
+        self.output_box.after(100, self.process_queue)
+
+def run_script_cli(script_name):
+    """Run a script as a subprocess and display output in the console."""
+    try:
+        command = f'{sys.executable} -u {script_name}'  # Run in unbuffered mode
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        stdout, stderr = process.communicate()
+        
+        if stdout:
+            print(f"Output of {script_name}:\n{stdout}\n")
         if stderr:
-            output_box.insert(tk.END, f"Errors:\n{stderr}\n")
-        output_box.see(tk.END)
-    else:
-        print(f"Output of {script_name}:\n{stdout}")
-        if stderr:
-            print(f"Errors:\n{stderr}")
+            print(f"Errors:\n{stderr}\n")
+    except Exception as e:
+        print(f"Exception occurred while running {script_name}:\n{str(e)}")
 
 def main():
-    """ Automatically run the startup, tracking, and weather monitoring scripts."""
-
-    # Run the startup script to initialize the mount
+    """Run the startup, tracking, and weather monitoring scripts in command-line mode."""
     print("Initializing mount with startup script...")
-    run_script('startup_mount.py')
+    run_script_cli('startup_mount.py')
     print("Mount initialization complete.")
 
-    # Start the tracking script
     print("Starting tracking.")
-    tracking_thread = threading.Thread(target=run_script, args=('track_sun.py',))
+    tracking_thread = threading.Thread(target=run_script_cli, args=('track_sun.py',))
     tracking_thread.start()
 
-    # Start the weather monitoring script
     print("Starting Weather Monitor.")
-    weather_thread = threading.Thread(target=run_script, args=('weather_monitor.py',))
+    weather_thread = threading.Thread(target=run_script_cli, args=('weather_monitor.py',))
     weather_thread.start()
 
     tracking_thread.join()
     weather_thread.join()
 
 def run_gui():
-    """ Create a GUI with buttons to run the scripts and display output."""
-
-    def create_button(script_name):
-        frame = tk.Frame(root)
-        frame.pack(pady=5)
-        
-        button = tk.Button(frame, text=f"Run {script_name}", command=lambda: threading.Thread(target=run_script, args=(script_name, output_box)).start())
-        button.pack(side=tk.LEFT)
-        
-        output_box = scrolledtext.ScrolledText(frame, width=60, height=5)
-        output_box.pack(side=tk.LEFT, padx=10)
-        
-        return button
-
+    """Run the GUI control panel for the automated solar telescope."""
     root = tk.Tk()
     root.title("Automated Solar Telescope Control Panel")
 
-    start_server_button = create_button('start_server.py')
-    startup_button = create_button('startup_mount.py')
-    tracking_button = create_button('track_sun.py')
-    weather_button = create_button('weather_monitor.py')
-    run_fc_button = create_button('run_fc.py')
-    shutdown_button = create_button('shutdown_mount.py')
-    nstep_button = create_button('nstep_control.py')
-    kill_server_button = create_button('kill_server.py')
+    # Create frames for each row
+    row1 = tk.Frame(root)
+    row1.pack(pady=5)
+    row2 = tk.Frame(root)
+    row2.pack(pady=5)
+    row3 = tk.Frame(root)
+    row3.pack(pady=5)
+    row4 = tk.Frame(root)
+    row4.pack(pady=5)
+
+    # Add ScriptRunner instances for each script in the specified layout
+    ScriptRunner(row1, 'start_server.py')
+    ScriptRunner(row1, 'kill_server.py')
+    ScriptRunner(row2, 'startup_mount.py')
+    ScriptRunner(row2, 'track_sun.py')
+    ScriptRunner(row3, 'weather_monitor.py')
+    ScriptRunner(row3, 'nstep_control.py')
+    ScriptRunner(row4, 'run_fc.py')
 
     root.mainloop()
 

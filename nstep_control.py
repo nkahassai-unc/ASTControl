@@ -47,49 +47,63 @@ class FocuserControl:
     def create_widgets(self):
         # Speed control
         tk.Label(self.master, text="Speed:").grid(row=0, column=0)
-        self.speed_var = tk.DoubleVar(value=241.0)
+        self.speed_var = tk.DoubleVar(value=66.0)
         self.speed_scale = tk.Scale(self.master, from_=0, to=500, orient=tk.HORIZONTAL, variable=self.speed_var)
         self.speed_scale.grid(row=0, column=1)
         tk.Button(self.master, text="Set Speed", command=self.set_speed).grid(row=0, column=2)
 
         # Direction control
         tk.Label(self.master, text="Direction:").grid(row=1, column=0)
-        self.direction_var = tk.StringVar(value="MOVE_INWARD")
-        tk.Radiobutton(self.master, text="Inward", variable=self.direction_var, value="MOVE_INWARD").grid(row=1, column=1)
-        tk.Radiobutton(self.master, text="Outward", variable=self.direction_var, value="MOVE_OUTWARD").grid(row=1, column=2)
-        tk.Button(self.master, text="Move", command=self.set_direction).grid(row=1, column=3)
+        self.move_inward_var = tk.IntVar(value=0)
+        self.move_outward_var = tk.IntVar(value=0)
+        self.move_inward_check = tk.Checkbutton(self.master, text="Inward", variable=self.move_inward_var, command=self.set_direction)
+        self.move_inward_check.grid(row=1, column=1)
+        self.move_outward_check = tk.Checkbutton(self.master, text="Outward", variable=self.move_outward_var, command=self.set_direction)
+        self.move_outward_check.grid(row=1, column=2)
+
+        # Steps input
+        tk.Label(self.master, text="Steps:").grid(row=2, column=0)
+        self.steps_entry = tk.Entry(self.master)
+        self.steps_entry.grid(row=2, column=1)
+        tk.Button(self.master, text="Move Steps", command=self.move_steps).grid(row=2, column=2)
 
         # Abort motion
-        tk.Button(self.master, text="Abort Motion", command=self.abort_motion).grid(row=2, column=0, columnspan=4)
+        tk.Button(self.master, text="Abort Motion", command=self.abort_motion).grid(row=3, column=0, columnspan=3)
 
         # Position and temperature readout
-        tk.Label(self.master, text="Position:").grid(row=3, column=0)
+        tk.Label(self.master, text="Position:").grid(row=4, column=0)
         self.position_label = tk.Label(self.master, text="0")
-        self.position_label.grid(row=3, column=1)
+        self.position_label.grid(row=4, column=1)
 
-        tk.Label(self.master, text="Temperature:").grid(row=4, column=0)
+        tk.Label(self.master, text="Temperature:").grid(row=5, column=0)
         self.temperature_label = tk.Label(self.master, text="0")
-        self.temperature_label.grid(row=4, column=1)
+        self.temperature_label.grid(row=5, column=1)
 
     def set_speed(self):
         speed = self.speed_var.get()
         # Set the focuser speed using indigo_prop_tool
         self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_SPEED.SPEED={speed}\"")
-        messagebox.showinfo("Info", f"Speed set to {speed}")
 
     def set_direction(self):
-        direction = self.direction_var.get()
-        if direction == "MOVE_INWARD":
+        if self.move_inward_var.get():
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_INWARD=ON\"")
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_OUTWARD=OFF\"")
-        else:
+            self.move_outward_check.deselect()
+        elif self.move_outward_var.get():
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_INWARD=OFF\"")
             self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_DIRECTION.MOVE_OUTWARD=ON\"")
-        messagebox.showinfo("Info", f"Direction set to {direction}")
+            self.move_inward_check.deselect()
+
+    def move_steps(self):
+        steps = self.steps_entry.get()
+        try:
+            steps = float(steps)
+            self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_STEPS.STEPS={steps}\"")
+        except ValueError:
+            print("Invalid input for steps")
 
     def abort_motion(self):
         self.run_command(f"indigo_prop_tool set \"nSTEP.FOCUSER_ABORT_MOTION.ABORT_MOTION=ON\"")
-        messagebox.showinfo("Info", "Motion aborted")
 
     def update_position_and_temperature(self):
         # Get the current position and temperature from indigo_prop_tool

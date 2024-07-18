@@ -8,8 +8,6 @@ import subprocess
 class WeatherMonitor:
     def __init__(self):
         self.weather_api_url = 'http://api.openweathermap.org/data/2.5/weather'
-        
-        # OpenWeatherMap API Key
         self.weather_api_key = '10b2f1d4a200b534bb2d4bf69bddcace'
         self.latitude = 35.9132  # Latitude of Chapel Hill, NC
         self.longitude = -79.0558  # Longitude of Chapel Hill, NC
@@ -55,10 +53,16 @@ class WeatherMonitor:
             else:
                 sky_conditions = 'not clear'
 
-            print(f"Temperature: {temperature}°C")
-            print(f"Chance of rain: {rain_chance} mm in the last hour")
-            print(f"Sky conditions: {sky_conditions}")
+            output = (
+                f"Temperature: {temperature}°C\n"
+                f"Chance of rain: {rain_chance} mm in the last hour\n"
+                f"Sky conditions: {sky_conditions}\n"
+            )
 
+            # Print the weather data
+            print(output)
+
+            # Check if rain is likely
             if 'rain' in weather_conditions:
                 return True
             return False
@@ -66,22 +70,23 @@ class WeatherMonitor:
             print(f"Error fetching weather data: {e}")
             return False
 
-
-    def monitor_and_shutdown(self):
-        """Monitor weather conditions and initiate shutdown if needed."""
-        
-        # Check weather every 15 minutes
+    def weather_report(self):
+        """Report weather conditions and initiate shutdown if needed."""
         while True:
+            print("Checking weather...")
             if self.check_weather():
                 print("Unfavorable weather detected. Initiating shutdown sequence...")
-                # weather shutdown later on
                 #self.run_command('python3 shutdown_mount.py')
-                break
-            time.sleep(900)  # 15 minutes
+                time.sleep(900)  # Check again in 15 minutes
+            else:
+                print("Weather conditions are favorable. No action required.")
+                print("Checking again in 15 minutes...")
+            time.sleep(900)  # Check again in 15 minutes
 
 def main():
     weather_monitor = WeatherMonitor()
-    weather_monitor.monitor_and_shutdown()
+    print('Starting weather monitor...')
+    weather_monitor.weather_report()
 
 if __name__ == "__main__":
     main()
