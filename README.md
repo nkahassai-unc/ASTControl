@@ -10,9 +10,16 @@ ASTControl is a comprehensive control system for an automated solar telescope sy
 - **FireCapture Integration**: Includes scripts to run and manage FireCapture sessions.
 - **Server Control**: Start and stop server operations with ease.
 
+- **GUI Control Panel**: Command center for all scripts and simultaneous outputs 
+
 ## Installation
 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/nkahassai-unc/ASTControl.git
    cd ASTControl
+
+## Usage
+
+1. **Command line option**
+2. **GUI Control Panel**
