@@ -23,7 +23,7 @@ class ScriptRunner:
         self.button = tk.Button(self.frame, text=f"Run {self.script_name}", command=self.run_script)
         self.button.pack(side=tk.TOP, padx=5, pady=5)
         
-        self.output_box = scrolledtext.ScrolledText(self.frame, width=60, height=7)
+        self.output_box = scrolledtext.ScrolledText(self.frame, width=60, height=10)
         self.output_box.pack(side=tk.TOP, padx=10, pady=5)
         
         self.output_box.after(100, self.process_queue)
@@ -109,6 +109,7 @@ def run_gui():
     ScriptRunner(row3, 'weather_monitor.py')
     ScriptRunner(row3, 'nstep_control.py')
     ScriptRunner(row4, 'run_fc.py')
+    ScriptRunner(row4, 'calculations.py')
 
     root.mainloop()
 

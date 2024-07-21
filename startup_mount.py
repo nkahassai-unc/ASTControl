@@ -77,6 +77,7 @@ class MountControl:
 
         # Calculate home coordinates
         home_ra, home_dec = self.get_home_coordinates()
+        print(home_ra, home_dec)
         
         # Sync the telescope with home equatorial coordinates
         print("Syncing the telescope with home coordinates...")
