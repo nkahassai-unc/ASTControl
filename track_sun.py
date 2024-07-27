@@ -33,6 +33,14 @@ class MountControl:
         equatorial_coord = sun_altaz.transform_to(ICRS) 
         sun_ra = equatorial_coord.ra.deg
         sun_dec = equatorial_coord.dec.deg
+        """
+        # Convert RA Format to hours:minutes:seconds
+        ra_convert = home_ra/15.0
+        ra_hours = int(ra_convert) // 1 
+        ra_minutes = (ra_convert - ra_hours) * 60
+        ra_seconds = (ra_minutes - int(ra_minutes)) * 60
+        ra_format = f"{ra_hours}h {int(ra_minutes)}m {int(ra_seconds)}s"
+        """
         return sun_ra, sun_dec
 
     def initial_slew(self):
