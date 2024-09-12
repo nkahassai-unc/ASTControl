@@ -1,7 +1,7 @@
 # Cross reference calculations for telescope coordinates
 
 from astropy.time import Time
-from astropy.coordinates import EarthLocation, AltAz, ICRS, SkyCoord
+from astropy.coordinates import EarthLocation, AltAz, ICRS, SkyCoord, get_sun
 import astropy.units as u
 
 # Observer's location (Chapel Hill, NC)
@@ -93,3 +93,11 @@ print("--------------------")
 print("Home West (RA Format conversion)")
 print(f"RA: {ra_format} , Dec: {dec}")
 print("-*-*-*-*-*-*-*-*-*-*")
+
+# Solar Position Calculation
+sun_gcrs = get_sun(now)
+sun_altaz = sun_gcrs.transform_to(altaz_frame)
+# Convert horizontal coordinates to equatorial coordinates (ICRS frame)
+equatorial_coord = sun_altaz.transform_to(ICRS) 
+sun_ra = equatorial_coord.ra.deg
+sun_dec = equatorial_coord.dec.deg
