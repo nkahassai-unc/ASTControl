@@ -49,7 +49,7 @@ class MountControl:
         # Connect the mount
         print("Connecting to the mount...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.CONNECTION.CONNECTED=ON\"")
-        
+        '''
         # Wait until the mount is connected
         while True:
             status = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.CONNECTION.CONNECTED\"").strip()
@@ -59,7 +59,7 @@ class MountControl:
             else:
                 print("Waiting for mount to connect...")
                 pytime.sleep(3)  # Wait 3 seconds before checking again
-        
+        '''
         # Initialize the mount with geographic coordinates
         print("Setting the location...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.GEOGRAPHIC_COORDINATES.LATITUDE={self.latitude};LONGITUDE={self.longitude};ELEVATION={self.altitude}\"")
