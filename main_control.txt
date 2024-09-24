@@ -1,3 +1,4 @@
+# Obsolete AST 2.0
 # Main control script to run the startup, tracking, weather monitoring, and shutdown scripts.
 # GUI and command-line modes are supported.
 

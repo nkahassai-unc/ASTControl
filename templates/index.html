@@ -51,15 +51,10 @@
 </head>
 <body>
     <h1> </h1>
+    <h1> </h1>
     <h1>Automated Solar Telescope (AST) Control Panel</h1>
 
     <div class="control-grid">
-        <!-- Controls for nSTEP Control -->
-        <div class="control-item">
-            <h2>nSTEP Control</h2>
-            <button onclick="startScript('nstep_control.py')">Start nSTEP Control</button>
-            <pre id="nstep_control.py_output">Output will appear here...</pre>
-        </div>
 
         <!-- Controls for Start Server -->
         <div class="control-item">
@@ -73,6 +68,13 @@
             <h2>Kill Server</h2>
             <button onclick="startScript('kill_server.py')">Kill Server</button>
             <pre id="kill_server.py_output">Output will appear here...</pre>
+        </div>
+
+        <!-- Controls for nSTEP Control -->
+        <div class="control-item">
+        <h2>nSTEP Control</h2>
+        <button onclick="startScript('nstep_control.py')">Start nSTEP Control</button>
+        <pre id="nstep_control.py_output">Output will appear here...</pre>
         </div>
 
         <!-- Controls for Weather Monitor -->
@@ -89,6 +91,15 @@
             <button onclick="startScript('run_fc.py')">Run FireCapture</button>
             <pre id="run_fc.py_output">FireCapture output will appear here...</pre>
         </div>
+
+        <!-- Controls for PMC8 Mount Startup -->
+        <div class="control-item">
+            <h2>PMC8 Mount Startup</h2>
+            <button onclick="startScript('startup_mount.py')">Startup PMC8 Mount</button>
+            <pre id="startup_mount.py_output">Output will appear here...</pre>
+        </div>
+
+
     </div>
 
     <!-- JavaScript at the end to ensure elements are loaded first -->
@@ -123,7 +134,7 @@
 
         // Automatically fetch the output every second for each script
         setInterval(() => {
-            const scripts = ['nstep_control.py', 'start_server.py', 'kill_server.py', 'weather_monitor.py', 'run_fc.py'];
+            const scripts = ['nstep_control.py', 'start_server.py', 'kill_server.py', 'weather_monitor.py', 'run_fc.py', 'startup_mount.py'];
             scripts.forEach(script => updateOutput(script));
         }, 1000);  // Update every 1000 milliseconds (1 second)
     </script>

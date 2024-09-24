@@ -12,7 +12,7 @@ class WeatherMonitor:
 
     def log(self, message):
         """Log output through the callback to app.py"""
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        # timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         self.output_callback(f"{message}")
 
     def check_weather(self):

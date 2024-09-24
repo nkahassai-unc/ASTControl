@@ -24,15 +24,18 @@ class MountControl:
 
     def get_sun_coordinates(self):
         """Fetch the current equatorial coordinates of the Sun."""
+        
         now = Time.now()  # Current UTC time
         print("Current time:", now)
         sun_gcrs = get_sun(now)
         altaz_frame = AltAz(obstime=now, location=self.location)
         sun_altaz = sun_gcrs.transform_to(altaz_frame)
+
         # Convert horizontal coordinates to equatorial coordinates (ICRS frame)
         equatorial_coord = sun_altaz.transform_to(ICRS) 
         sun_ra = equatorial_coord.ra.deg
         sun_dec = equatorial_coord.dec.deg
+
         """
         # Convert RA Format to hours:minutes:seconds
         ra_convert = home_ra/15.0
@@ -105,7 +108,7 @@ class MountControl:
 
 def main():
     mount_control = MountControl()
-    
+
     # Run initial_slew once to position the telescope towards the Sun initially
     mount_control.initial_slew()
 
