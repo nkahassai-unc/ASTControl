@@ -27,9 +27,11 @@ class MountControl:
         self.location = EarthLocation(lat=35.9132*u.deg, lon=-79.0558*u.deg, height=80*u.m)
         # Define the AltAz frame for the given time and location
         altaz_frame = AltAz(obstime=now, location=self.location)
+
         # Due west azimuth is 270 degrees, and horizon altitude is 0 degrees
         az = 270 * u.deg
         alt = 0 * u.deg
+
         # Create a SkyCoord object for the given alt/az
         horizontal_coord = SkyCoord(alt=alt, az=az, frame=altaz_frame)
         # Convert horizontal coordinates to equatorial coordinates (ICRS frame)
@@ -63,6 +65,7 @@ class MountControl:
                 #print("Motion aborted.")
                 self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.ON=OFF\"")
                 self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_TRACKING.OFF=ON\"")
+                print("Tracking stopped.")
                 break
             else:
                 print(f"Current RA: {current_ra}, Current DEC: {current_dec}. Waiting for mount to finish slewing...")

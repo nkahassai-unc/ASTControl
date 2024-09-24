@@ -1,0 +1,82 @@
+/* General body styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+}
+
+/* Container for the control panel */
+.control-panel {
+    background-color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 900px;
+}
+
+/* Headings styling */
+h1 {
+    text-align: center;
+    color: #2c3e50;
+}
+
+h2 {
+    color: #34495e;
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* Style for the black text boxes (for script output) */
+pre {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    border-radius: 5px;
+    padding: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+/* Button styling */
+button {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    margin: 10px;
+}
+
+button:hover {
+    background-color: #2ecc71;
+}
+
+button:active {
+    background-color: #1e8449;
+}
+
+/* Flexbox for buttons */
+button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Timestamp and other output styling */
+.timestamp {
+    font-size: 12px;
+    color: #7f8c8d;
+    text-align: right;
+    margin-top: -15px;
+}

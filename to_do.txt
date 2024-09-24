@@ -1,8 +1,15 @@
 AST Control To Do
 - connect weather_monitor with track_sun (soon)
+
 - finish file_handler
+    - ensure new files go to preprocessing folder
+
 - investigate startup_mount sync 
+    - home position
+    - shut down procedure to start up consistent
+
 - print statements at boot & shut down
+    - where?
 
 
 Current AST Control To Do (1.5.6)
@@ -18,7 +25,17 @@ Current AST Control To Do (1.5.6)
     - fix home coordinates formatting
 
 - fine report weather_monitor
+    - later
+
+--------
 - connect weather_monitor signalling to track_sun
+    - define
+
 - update nstep controls 
+    - to what?
 - update etalon controls
+    - to what?
+    - servo A and servo B, numerical increment
+
+mech:
 - diagnose servo jitter, add ferrite coils 

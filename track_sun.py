@@ -68,7 +68,7 @@ class MountControl:
             current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
 
             # If the mount is within a small tolerance of the Sun's position, set the slew rate to guide
-            if abs(current_ra - solar_ra) < 1.0 and abs(current_dec - solar_dec) < 1.0:
+            if abs(current_ra - solar_ra) < 10.0 and abs(current_dec - solar_dec) < 10.0:
                 print("Mount has finished slewing to the Sun.")
                 
                 # Set the slew rate to guide
@@ -105,6 +105,7 @@ class MountControl:
 
 def main():
     mount_control = MountControl()
+    
     # Run initial_slew once to position the telescope towards the Sun initially
     mount_control.initial_slew()
 

@@ -8,6 +8,7 @@ def run_command(command):
     return output.decode(), error.decode()
 
 commands = ["sudo pkill -f indigo_server", "sudo pkill -f indigo_wo"]
+
 for command in commands:
     output, error = run_command(command)
     print(f"Running command: {command}")
