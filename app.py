@@ -53,6 +53,7 @@ def run_script_with_subprocess(script_name, script_command):
             log_output(script_name, line.strip())
 
         log_output(script_name, f"{script_name} completed.")
+        
     except Exception as e:
         log_output(script_name, f"Error running {script_name}: {str(e)}")
 

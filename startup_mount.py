@@ -16,11 +16,6 @@ class MountControl:
         self.location = EarthLocation(lat=35.9132 * u.deg, lon=-79.0558 * u.deg, height=80 * u.m) # Chapel Hill, NC coordinates
         self.output_callback = output_callback  # Output callback function to send logs to app.py
         
-        # Check the Sun's position before initializing the mount
-        if self.horizon_check():
-            self.log("The Sun is below the horizon. Cannot initialize the mount.")
-        else:
-            self.initialize_mount()
 
     def log(self, message):
         """Log output through the callback to app.py."""
@@ -70,6 +65,7 @@ class MountControl:
 
     def initialize_mount(self):
         """Initalize mount."""
+
         # Connect the mount
         self.log("Connecting to the mount...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.CONNECTION.CONNECTED=ON\"")
@@ -100,3 +96,10 @@ class MountControl:
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={home_ra};DEC={home_dec}\"")
 
         self.log("Mount initialization complete.")
+
+    # Check the Sun's position before initializing the mount
+        if self.horizon_check():
+            print('Determining if the Sun is below the horizon...')
+            self.log("The Sun is below the horizon. Cannot initialize the mount.")
+        else:
+            self.initialize_mount()
