@@ -97,9 +97,15 @@ class MountControl:
 
         self.log("Mount initialization complete.")
 
+def main():
+    # Instantiating MountControl with a basic print callback
+    mount_control = MountControl()
+    
     # Check the Sun's position before initializing the mount
-        if self.horizon_check():
-            print('Determining if the Sun is below the horizon...')
-            self.log("The Sun is below the horizon. Cannot initialize the mount.")
-        else:
-            self.initialize_mount()
+    if mount_control.horizon_check():
+        mount_control.log("The Sun is below the horizon. Cannot initialize the mount.")
+    else:
+        mount_control.initialize_mount()
+
+if __name__ == "__main__":
+    main()

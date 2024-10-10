@@ -55,8 +55,8 @@ class MountControl:
         # Wait for the telescope to finish slewing
         while True:
             # Get the current RA and Declination
-            current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
-            current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
+            current_ra = float(self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\""))
+            current_dec = float(self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\""))
 
             # Check if the mount is at the home position
             if abs(current_ra - home_ra) < 0.2 and abs(current_dec - home_dec) < 0.2:
