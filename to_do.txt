@@ -3,14 +3,19 @@ AST Control To Do
 
 - finish file_handler
     - ensure new files go to preprocessing folder
+    - tbd
 
 - investigate startup_mount sync 
     - home position
     - shut down procedure to start up consistent
+    - re: startup_mount and new home
 
 - print statements at boot & shut down
-    - where?
+    - where? redundant
 
+- static terminal boxes, too wide
+
+*-*-*-*-*-*-
 
 Current AST Control To Do (1.5.6)
 - investigate sync in startup_mount
@@ -21,6 +26,7 @@ Current AST Control To Do (1.5.6)
     - fix sun coordinates formatting
     - intial_slew()
     - update_sun()
+    
 - investigate sync & position in shutdown_mount
     - fix home coordinates formatting
 
@@ -29,12 +35,13 @@ Current AST Control To Do (1.5.6)
 
 --------
 - connect weather_monitor signalling to track_sun
-    - define
+    - define, redundant?
 
 - update nstep controls 
-    - to what?
+    - to what? nstep revamped to buttons to javascript
+
 - update etalon controls
-    - to what?
+    - to what? arduino bindings to python
     - servo A and servo B, numerical increment
 
 mech:

@@ -2,7 +2,7 @@
 
 import subprocess
 import time as pytime  # Renamed to avoid conflict with astropy's Time class
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS, get_sun
 from astropy.time import Time
 import astropy.units as u
 
@@ -10,11 +10,17 @@ class MountControl:
     def __init__(self, output_callback):
         """Mount & location settings."""
         self.mount_device = 'Mount PMC Eight'
-        self.latitude = 35.913200  # N 
-        self.longitude = 280.944153  # E 
-        self.altitude = 80  # meters
+        self.latitude = 35.913200  # N - INDIGO format
+        self.longitude = 280.944153  # E - INDIGO format
+        self.altitude = 80  # meters - INDIGO format
+        self.location = EarthLocation(lat=35.9132 * u.deg, lon=-79.0558 * u.deg, height=80 * u.m) # Chapel Hill, NC coordinates
         self.output_callback = output_callback  # Output callback function to send logs to app.py
-        self.initialize_mount()
+        
+        # Check the Sun's position before initializing the mount
+        if self.horizon_check():
+            self.log("The Sun is below the horizon. Cannot initialize the mount.")
+        else:
+            self.initialize_mount()
 
     def log(self, message):
         """Log output through the callback to app.py."""
@@ -33,10 +39,9 @@ class MountControl:
         """Calculate home equatorial coordinates."""
         # Current UTC time
         now = Time.now()
-        # Chapel Hill, NC coordinates
-        self.location = EarthLocation(lat=35.9132 * u.deg, lon=-79.0558 * u.deg, height=80 * u.m)
         # Define the AltAz frame for the given time and location
         altaz_frame = AltAz(obstime=now, location=self.location)
+        # Mount home position: Due west, horizon altitude
         # Due west azimuth is 270 degrees, and horizon altitude is 0 degrees
         az = 270 * u.deg
         alt = 0 * u.deg
@@ -47,6 +52,21 @@ class MountControl:
         home_ra = equatorial_coord.ra.deg
         home_dec = equatorial_coord.dec.deg
         return home_ra, home_dec
+    
+    def horizon_check(self):
+        """Check if the Sun is below the horizon."""
+        # Current UTC time
+        now = Time.now()
+        # Define the AltAz frame for the given time and location
+        altaz_frame = AltAz(obstime=now, location=self.location)
+        # Get the Sun's position in the AltAz frame
+        sun_altaz = get_sun(now).transform_to(altaz_frame)
+        # Check if the Sun's altitude is below the horizon
+        if sun_altaz.alt.deg < 0 :
+            self.log(f"The Sun is below the horizon at altitude {sun_altaz.alt:.2f}. Cannot initialize the mount.")
+            return True
+        return False
+
 
     def initialize_mount(self):
         """Initalize mount."""

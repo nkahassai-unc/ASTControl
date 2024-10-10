@@ -101,3 +101,7 @@ sun_altaz = sun_gcrs.transform_to(altaz_frame)
 equatorial_coord = sun_altaz.transform_to(ICRS) 
 sun_ra = equatorial_coord.ra.deg
 sun_dec = equatorial_coord.dec.deg
+print("Sun Position")
+print(f"RA: {sun_ra} degrees, Dec: {sun_dec} degrees")
+print("--------------------")
+print(sun_altaz.alt.deg, sun_altaz.az.deg)

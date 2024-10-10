@@ -1,37 +1,77 @@
 /* General body styling */
-body {
+body, html {
     font-family: Arial, sans-serif;
     background-color: #f4f4f9;
     color: #333;
     margin: 0;
     padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    flex-direction: column;
+    height: 100%; /* Full height to fit the entire viewport */
 }
 
-/* Container for the control panel */
-.control-panel {
-    background-color: #ffffff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    border-radius: 10px;
-    width: 80%;
-    max-width: 900px;
+/* Header styling */
+.header {
+    color: #ffffff;
+    background-color: #2c3e50;
+    padding: 15px;
+    text-align: left;
+    position: sticky; /* Keep title visible */
+    top: 0; /* Stick to the top */
+    width: 100%; /* Full width */
+    z-index: 50; /* Keep above other content */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Shadow for clarity */
 }
 
-/* Headings styling */
+/* Title styling */
 h1 {
-    text-align: center;
-    color: #2c3e50;
+    text-align: left;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: left; /* Align to the left */
+    color: #ffffff;
 }
 
+/* Styling for secondary headings (h2) */
 h2 {
     color: #34495e;
-    margin-top: 20px;
+    margin: 10px 0;
     text-align: center;
+}
+
+/* Control panel container */
+.control-panel {
+    display: flex;
+    justify-content: center;
+    align-items: left;
+    padding: 20px;
+    width: 95%; /* Increase width for the control panel */
+    margin: 0 auto;
+    max-width: 1500px; /* Limit max-width */
+    overflow-y: auto; /* Enable scrolling if needed */
+    flex-grow: 1; /* Take up remaining space */
+}
+
+/* Grid Layout for the Control Panel */
+.control-grid {
+    display: grid;
+    align-items: center;
+    grid-template-columns: 1fr 1fr; /* Two equal-width columns */
+    gap: 20px; /* Space between columns */
+    margin-top: 10px;
+}
+
+/* Styling for each control item */
+.control-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px; /* Limit max width of control boxes */
+    background: #ffffff;
+    border: 1px solid #ddd;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
 }
 
 /* Style for the black text boxes (for script output) */
@@ -40,9 +80,20 @@ pre {
     color: #ecf0f1;
     border-radius: 5px;
     padding: 15px;
-    max-height: 150px;
+    max-height: 250px;
     overflow-y: auto;
     margin-top: 10px;
+    width: 100%;
+    white-space: pre-wrap; /* Keep long lines from overflowing */
+    word-wrap: break-word; /* Break long lines */
+}
+
+/* Styling for the last checked timestamp */
+#last_checked {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-top: 5px;
+    font-weight: bold;
 }
 
 /* Button styling */
@@ -66,17 +117,21 @@ button:active {
     background-color: #1e8449;
 }
 
-/* Flexbox for buttons */
-button-group {
+/* Flexbox for button groups */
+.button-group {
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 10px;
+    flex-wrap: wrap; /* Allow buttons to wrap if needed */
+    margin-top: 10px;
 }
 
-/* Timestamp and other output styling */
-.timestamp {
-    font-size: 12px;
-    color: #7f8c8d;
-    text-align: right;
-    margin-top: -15px;
+/* Footer styling */
+.footer {
+    background-color: #2c3e50;
+    color: #ffffff;
+    text-align: center;
+    padding: 10px;
+    width: 100%; /* Full width */
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2); /* Shadow to separate */
 }

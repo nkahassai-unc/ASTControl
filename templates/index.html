@@ -8,97 +8,84 @@
     <!-- Link to the external CSS file -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
-    <style>
-        /* Additional styles for two-column layout */
-        .control-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* Two equal-width columns */
-            gap: 20px; /* Space between columns */
-            margin-top: 20px;
-        }
-
-        .control-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            text-align: center;
-            margin-top: 20px;
-            color: #2c3e50;
-        }
-
-        /* Styling the black output boxes */
-        pre {
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            border-radius: 5px;
-            padding: 15px;
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 10px;
-            width: 100%;
-        }
-
-        /* Styling for the last checked timestamp */
-        #last_checked {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-    </style>
 </head>
+
 <body>
-    <h1> </h1>
-    <h1> </h1>
-    <h1>Automated Solar Telescope (AST) Control Panel</h1>
+    <!-- Wrapper for the whole page content -->
+    <div class="page-wrapper">
 
-    <div class="control-grid">
+        <!-- Header section -->
+        <header class="header">
+            <h1>Automated Solar Telescope (AST) Control Panel</h1>
+        </header>
 
-        <!-- Controls for Start Server -->
-        <div class="control-item">
-            <h2>Start Server</h2>
-            <button onclick="startScript('start_server.py')">Start Server</button>
-            <pre id="start_server.py_output">Output will appear here...</pre>
-        </div>
+        <!-- Main content container -->
+        <main class="control-panel">
+            <div class="control-grid">
 
-        <!-- Controls for Kill Server -->
-        <div class="control-item">
-            <h2>Kill Server</h2>
-            <button onclick="startScript('kill_server.py')">Kill Server</button>
-            <pre id="kill_server.py_output">Output will appear here...</pre>
-        </div>
+                <!-- Controls for Start Server -->
+                <div class="control-item">
+                    <h2>Start Server</h2>
+                    <button onclick="startScript('start_server.py')">Start Server</button>
+                    <pre id="start_server.py_output">Output will appear here...</pre>
+                </div>
 
-        <!-- Controls for nSTEP Control -->
-        <div class="control-item">
-        <h2>nSTEP Control</h2>
-        <button onclick="startScript('nstep_control.py')">Start nSTEP Control</button>
-        <pre id="nstep_control.py_output">Output will appear here...</pre>
-        </div>
+                <!-- Controls for Kill Server -->
+                <div class="control-item">
+                    <h2>Kill Server</h2>
+                    <button onclick="startScript('kill_server.py')">Kill Server</button>
+                    <pre id="kill_server.py_output">Output will appear here...</pre>
+                </div>
 
-        <!-- Controls for Weather Monitor -->
-        <div class="control-item">
-            <h2>Weather Monitor</h2>
-            <button onclick="startScript('weather_monitor.py')">Start Weather Monitor</button>
-            <pre id="weather_monitor.py_output">Weather output will appear here...</pre>
-            <p id="last_checked">Last checked: Not yet started</p>
-        </div>
+                <!-- Controls for PMC8 Mount Startup -->
+                <div class="control-item">
+                    <h2>PMC8 Mount Startup</h2>
+                    <button onclick="startScript('startup_mount.py')">Startup PMC8 Mount</button>
+                    <pre id="startup_mount.py_output">Output will appear here...</pre>
+                </div>
 
-        <!-- Controls for FireCapture -->
-        <div class="control-item">
-            <h2>Run FireCapture</h2>
-            <button onclick="startScript('run_fc.py')">Run FireCapture</button>
-            <pre id="run_fc.py_output">FireCapture output will appear here...</pre>
-        </div>
+                <!-- Controls for Sun Tracking -->
+                <div class="control-item">
+                    <h2>Sun Tracking</h2>
+                    <button onclick="startScript('track_sun.py')">Start Sun Tracking</button>
+                    <pre id="track_sun.py_output">Output will appear here...</pre>
+                </div>
 
-        <!-- Controls for PMC8 Mount Startup -->
-        <div class="control-item">
-            <h2>PMC8 Mount Startup</h2>
-            <button onclick="startScript('startup_mount.py')">Startup PMC8 Mount</button>
-            <pre id="startup_mount.py_output">Output will appear here...</pre>
-        </div>
+                <!-- Controls for nSTEP Control -->
+                <div class="control-item">
+                <h2>nSTEP Control</h2>
+                <button onclick="startScript('nstep_control.py')">Start nSTEP Control</button>
+                <pre id="nstep_control.py_output">Output will appear here...</pre>
+                </div>
 
+                <!-- Controls for Etalon Control System (ECS) -->
+                <div class="control-item">
+                    <h2>Etalon Control System (ECS)</h2>
+                    <button onclick="startScript('etalon_control.py')">Start ECS Control</button>
+                    <pre id="etalon_control.py_output">Output will appear here...</pre>
+                </div>
+
+                <!-- Controls for Weather Monitor -->
+                <div class="control-item">
+                    <h2>Weather Monitor</h2>
+                    <button onclick="startScript('weather_monitor.py')">Start Weather Monitor</button>
+                    <pre id="weather_monitor.py_output">Weather output will appear here...</pre>
+                    <p id="last_checked">Last checked: Not yet started</p>
+                </div>
+
+                <!-- Controls for FireCapture -->
+                <div class="control-item">
+                    <h2>Run FireCapture</h2>
+                    <button onclick="startScript('run_fc.py')">Run FireCapture</button>
+                    <pre id="run_fc.py_output">FireCapture output will appear here...</pre>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Optional footer for additional info or links -->
+        <footer class="footer">
+            <p>Project by [Nathnael Kahassai]. All Rights Reserved. 2024.</p>
+        </footer>
 
     </div>
 
@@ -134,7 +121,7 @@
 
         // Automatically fetch the output every second for each script
         setInterval(() => {
-            const scripts = ['nstep_control.py', 'start_server.py', 'kill_server.py', 'weather_monitor.py', 'run_fc.py', 'startup_mount.py'];
+            const scripts = ['nstep_control.py', 'start_server.py', 'kill_server.py', 'weather_monitor.py', 'run_fc.py', 'etalon_control.py', 'startup_mount.py', 'track_sun.py'];
             scripts.forEach(script => updateOutput(script));
         }, 1000);  // Update every 1000 milliseconds (1 second)
     </script>

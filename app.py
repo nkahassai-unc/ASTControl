@@ -15,6 +15,7 @@ script_outputs = {
     "kill_server.py": deque(maxlen=20),
     "run_fc.py": deque(maxlen=20),
     "startup_mount.py": deque(maxlen=20),
+    "track_sun.py": deque(maxlen=20),
 }
 
 # To prevent multiple weather monitor threads
@@ -95,7 +96,8 @@ def run_script(script_name):
             "run_fc.py": "run_fc.py",
             "startup_mount.py": "startup_mount.py",
             "start_server.py": "start_server.py",
-            "kill_server.py": "kill_server.py"
+            "kill_server.py": "kill_server.py",
+            "track_sun.py": "track_sun.py",
         }
         if script_name in script_mapping:
             start_script_in_thread(script_name, script_mapping[script_name])
