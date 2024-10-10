@@ -14,8 +14,7 @@ class MountControl:
         self.longitude = 280.944153  # E - INDIGO format
         self.altitude = 80  # meters - INDIGO format
         self.location = EarthLocation(lat=35.9132 * u.deg, lon=-79.0558 * u.deg, height=80 * u.m) # Chapel Hill, NC coordinates
-        self.output_callback = output_callback  # Output callback function to send logs to app.py
-        
+        self.output_callback = output_callback  # Assign the external output callback
 
     def log(self, message):
         """Log output through the callback to app.py."""
@@ -97,15 +96,14 @@ class MountControl:
 
         self.log("Mount initialization complete.")
 
-def main():
-    # Instantiating MountControl with a basic print callback
-    mount_control = MountControl()
+def main(output_callback):
+    mount_control = MountControl(output_callback)
     
-    # Check the Sun's position before initializing the mount
     if mount_control.horizon_check():
         mount_control.log("The Sun is below the horizon. Cannot initialize the mount.")
     else:
         mount_control.initialize_mount()
 
+# Run the script independently with a basic output callback
 if __name__ == "__main__":
-    main()
+    main(output_callback=print)  # Use print for standalone testing
