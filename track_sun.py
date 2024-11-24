@@ -47,40 +47,35 @@ class MountControl:
         return sun_ra, sun_dec
 
     def initial_slew(self):
-        """Slew the telescope to the Sun and start tracking."""
+        """Initial slew to the Sun's position."""
+        # Retrieve the current RA and DEC from the mount
+        current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
+        current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
 
-        # On coordinate set track (slew to coordinates and start tracking)
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_ON_COORDINATES_SET.TRACK=ON\"")
-        
-        # Set the slew rate to maximum
-        print("Setting slew rate to maximum...")
-        self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_SLEW_RATE.MAX=ON\"")
+        # Log the raw values for debugging
+        self.log(f"Raw values from mount - RA: {current_ra}, DEC: {current_dec}")
 
-        # Update the target coordinates
+        # Convert the retrieved RA and DEC values to float if they are not None
+        try:
+            current_ra = float(current_ra) if current_ra else 0.0
+            current_dec = float(current_dec) if current_dec else 0.0
+        except ValueError:
+            self.log(f"Error converting RA/DEC values to float: RA={current_ra}, DEC={current_dec}")
+            return
+
+        # Calculate the Sun's position
         solar_ra, solar_dec = self.get_sun_coordinates()
-        print(f"Sun coordinates at RA: {solar_ra}, DEC: {solar_dec}")
+        self.log(f"Sun coordinates at RA: {solar_ra}, DEC: {solar_dec}")
 
-        # Slew to the Sun and start tracking
-        print("Slewing to the Sun.")
+        # Check if the mount is already pointing at the Sun
+        if abs(current_ra - solar_ra) < 10.0 and abs(current_dec - solar_dec) < 10.0:
+            self.log("Mount is already pointing at the Sun.")
+            return
+
+        # If not, proceed with slewing
+        self.log("Slewing to the Sun...")
         self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA={solar_ra};DEC={solar_dec}\"")
 
-        # Wait for the telescope to finish slewing
-        while True:
-            # Get the current RA and declination
-            current_ra = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.RA\"")
-            current_dec = self.run_command(f"indigo_prop_tool get \"{self.mount_device}.MOUNT_EQUATORIAL_COORDINATES.DEC\"")
-
-            # If the mount is within a small tolerance of the Sun's position, set the slew rate to guide
-            if abs(current_ra - solar_ra) < 10.0 and abs(current_dec - solar_dec) < 10.0:
-                print("Mount has finished slewing to the Sun.")
-                
-                # Set the slew rate to guide
-                print("Setting slew rate to guide...")
-                self.run_command(f"indigo_prop_tool set \"{self.mount_device}.MOUNT_SLEW_RATE.GUIDE=ON\"")
-                break
-            else:
-                print(f"Current RA: {current_ra}, Current Dec: {current_dec}. Waiting for mount to finish slewing...")
-                pytime.sleep(3)  # Wait for 3 seconds before checking again
 
     def update_sun(self):
         """Track the Sun by updating mount coordinates periodically."""

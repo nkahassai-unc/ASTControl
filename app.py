@@ -1,132 +1,88 @@
-from flask import Flask, jsonify, render_template
-import threading
+# Ensure this is the very first import before any other
+import eventlet
+eventlet.monkey_patch()
+
+import json
 import time
-from collections import deque
-import subprocess
-import weather_monitor  # Import your weather_monitor script
+from flask import Flask, jsonify, render_template
+from flask_socketio import SocketIO
+import threading
+import weather_monitor
+from start_server import StartServer  # Adjust the import if necessary
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
-# Dictionary to keep track of output for each script
-script_outputs = {
-    "weather_monitor.py": deque(maxlen=20),
-    "nstep_control.py": deque(maxlen=20),
-    "start_server.py": deque(maxlen=20),
-    "kill_server.py": deque(maxlen=20),
-    "run_fc.py": deque(maxlen=20),
-    "startup_mount.py": deque(maxlen=20),
-    "track_sun.py": deque(maxlen=20),
+# Centralized status store for managing script states and outputs
+status_store = {
+    "server": "stopped",
+    "weather": {
+        "temperature": "--",
+        "rain_chance": "--",
+        "sky_conditions": "--",
+        "last_checked": "Not yet started"
+    }
 }
 
-# To prevent multiple weather monitor threads
-weather_monitor_thread = None
-# Dictionary to store threads for other scripts
+# Dictionary to store threads for scripts
 script_threads = {}
 
-# Function to log output to a script's deque
+# Function to log output and emit updates via SocketIO
 def log_output(script_name, log_message):
-    """Logs output with a timestamp."""
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    script_outputs[script_name].append(f"[{timestamp}] {log_message}")
-
-# Function to execute a Python script using subprocess and capture real-time output
-def run_script_with_subprocess(script_name, script_command):
-    log_output(script_name, f"Starting {script_name}...")
     try:
-        # Start the script and capture its output
-        process = subprocess.Popen(
-            ['python3', script_command],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
+        data = json.loads(log_message)
+        if 'temperature' in data:
+            # Update weather status
+            status_store["weather"] = {
+                "temperature": data['temperature'],
+                "rain_chance": data['rain_chance'],
+                "sky_conditions": data['sky_conditions'],
+                "last_checked": data['last_checked']
+            }
+            socketio.emit('weather_update', status_store["weather"])
+    except json.JSONDecodeError:
+        message = f"[{timestamp}] {log_message}"
+        socketio.emit(f'{script_name}_update', {'message': message})
 
-        # Capture real-time output
-        for line in process.stdout:
-            log_output(script_name, line.strip())
+# Function to start a script and manage its thread
+def start_script(script_name):
+    if script_name == "weather_monitor":
+        if "weather_monitor" not in script_threads or not script_threads["weather_monitor"].is_alive():
+            weather_thread = threading.Thread(target=weather_monitor.main, args=(lambda msg: log_output("weather", msg),))
+            weather_thread.daemon = True
+            weather_thread.start()
+            script_threads["weather_monitor"] = weather_thread
+            log_output("weather_monitor", "Weather monitor started.")
 
-        # Wait for the process to complete
-        process.wait()
-
-        # Capture any errors
-        for line in process.stderr:
-            log_output(script_name, line.strip())
-
-        log_output(script_name, f"{script_name} completed.")
-        
-    except Exception as e:
-        log_output(script_name, f"Error running {script_name}: {str(e)}")
-
-# Function to start a script in a new thread
-def start_script_in_thread(script_name, script_command):
-    # If the script is already running, don't start another thread
-    if script_name in script_threads and script_threads[script_name].is_alive():
-        log_output(script_name, f"{script_name} is already running.")
-        return
-    
-    # Start the script in a new thread
-    script_thread = threading.Thread(target=run_script_with_subprocess, args=(script_name, script_command))
-    script_thread.daemon = True  # Daemonize thread
-    script_thread.start()
-    script_threads[script_name] = script_thread
-
-# Function to run weather_monitor.py every 5 minutes
-def run_periodic_weather_monitor():
-    while True:
-        log_output("weather_monitor.py", "Starting weather monitor check...")
-        weather_monitor.main(lambda msg: log_output("weather_monitor.py", msg))
-        log_output("weather_monitor.py", "Weather monitor check completed.")
-        time.sleep(300)  # Sleep for 5 minutes
-
-# Function to start the appropriate script (either in a thread or periodically for weather)
-def run_script(script_name):
-    global weather_monitor_thread
-    if script_name == "weather_monitor.py":
-        # Start the weather monitor if not already running
-        if not weather_monitor_thread or not weather_monitor_thread.is_alive():
-            weather_monitor_thread = threading.Thread(target=run_periodic_weather_monitor)
-            weather_monitor_thread.daemon = True
-            weather_monitor_thread.start()
-            log_output(script_name, f"{script_name} started and will run every 5 minutes.")
-        else:
-            log_output(script_name, f"{script_name} is already running.")
-    else:
-        # Start other scripts in a new thread
-        script_mapping = {
-            "nstep_control.py": "nstep_control.py",
-            "run_fc.py": "run_fc.py",
-            "startup_mount.py": "startup_mount.py",
-            "start_server.py": "start_server.py",
-            "kill_server.py": "kill_server.py",
-            "track_sun.py": "track_sun.py",
-        }
-        if script_name in script_mapping:
-            start_script_in_thread(script_name, script_mapping[script_name])
-        else:
-            log_output(script_name, f"{script_name} not recognized.")
+    elif script_name == "start_server":
+        if "start_server" not in script_threads:
+            server_starter = StartServer(lambda msg: log_output("start_server", msg))
+            server_thread = threading.Thread(target=server_starter.run)
+            server_thread.daemon = True
+            server_thread.start()
+            script_threads["start_server"] = server_thread
+            log_output("start_server", "INDIGO server started.")
 
 # Flask route to start a script
-@app.route('/start/<script_name>')
-def start_script(script_name):
-    if script_name in script_outputs:
-        run_script(script_name)
+@app.route('/start/<script_name>', methods=['POST'])
+def start_script_route(script_name):
+    if script_name in ["weather_monitor", "start_server"]:
+        start_script(script_name)
         return jsonify({"status": f"{script_name} started"})
     else:
         return jsonify({"status": f"{script_name} not recognized"})
 
-# Flask route to fetch the last 20 lines of output for any script
-@app.route('/output/<script_name>')
-def get_output(script_name):
-    if script_name in script_outputs:
-        output = list(script_outputs[script_name])  # Convert deque to list
-        return jsonify({"output": output})
-    else:
-        return jsonify({"output": f"{script_name} not running or not recognized"})
+# Flask route to get the current status of all scripts
+@app.route('/get_status', methods=['GET'])
+def get_status():
+    return jsonify(status_store)
 
-# Flask route to serve the homepage (index.html)
+# Serve the homepage
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('index.html', weather=status_store["weather"])
 
+# Main entry point
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
