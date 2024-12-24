@@ -1,4 +1,105 @@
-AST Control To Do
+Current ASTControl To Do (2.3):
+
+Web Design & Layout:
+
+    -- Control & Feedback --
+    Server Module:
+        - Connect & Disconnect from Server
+        - Scrollable logging (indigo/server)
+
+    Mount Control Module:
+        - Live RA/DEC display.
+        - D-pad for slewing (N, S, E, W) with speed adjustment.
+        - Toggle slew rates.
+        - Toggle tracking modes (Solar, Sidereal).
+
+    --Information--
+    Calculations Module:
+        - Realtime Sun’s position, Sunrise, Sunset
+        - Display Meridian crossing? LST?
+
+    Weather Module (OpenWeatherMap API):
+        - Periodic weather data (temperature, humidity, wind).
+        - Safety warnings for unfavorable conditions.
+        
+    --Control & Feedback--
+    Dome Control Module (add):
+        - Open/Close dome button (servo control).
+        - Weather signalling integration for dome.
+
+    Etalon Control Module (add):
+        - Inward / Outward buttons for two servos.
+        - Speed control for fine adjustments.
+        - Relative position display.
+    
+    Dome Cam:
+        - Periodic (~ 1 FPS) camera feed from Dome webcam.
+
+    Science Cam:
+        - Periodic (1 FPS) camera feed from FireCapture.
+
+    nSTEP Focuser Control Module:
+        - Speed Control: Buttons for adjusting speed (e.g., slow, medium, fast)
+        - Direction Control: Buttons for inward and outward movement.
+        - Position Feedback: Display current position (e.g., steps or absolute position).
+        - Abort Motion: Button to stop motion immediately.
+
+    File Status Module (Future):
+        - File monitoring for **`.avi** science camera files.
+        - Status of file transfer/processing.
+
+---------
+Mechancial:
+
+- (Resolved) diagnose servo jitter, add ferrite coils 
+- 3D print box embedding coils & GPIO & arduino
+- 3D print holder for webcam
+
+---------
+Automation & Backend Architecture:
+
+server:
+    - start_server.py
+    - kill_server.py
+    # ensure API is being fed correctly
+    # check threading memory
+    # asynchronous architecture
+
+mount:
+    - startup_mount.py
+    - track_sun.py
+    - shutdown_mount.py
+    - calculations.py
+    # startup mount ensure correct sync
+    # track_sun runs nominally, startup & shutdown one time
+    # incoporate arduino dome signalling
+
+camera:
+    - run_fc.py
+    - run_fc.sh
+    # run firecapture and batch script in fc
+    # screenshot periodic from firecapture & feed into webserver
+    # delete screenshots after 50, (option for 1 fps to 1/10, 1/30, 1/60)
+
+peripherals:
+    - etalon_control.py
+    - nstep_control.py
+    - weather_monitor.py
+    # javascript buttons to webserver
+
+files & processing:
+    - file_handler.py
+    # resestablish FTP connection (Q://)
+
+    - TBD feed files into AS4! and IMPPG
+
+present:
+    - TBD feed files into output gif loops 
+    - hosted to other page on web server
+
+*-*-*-*-*-*-*-
+AST Control To Do (1.X.X)
+Web Design Critiques:
 - connect weather_monitor with track_sun (soon)
 
 - finish file_handler
@@ -16,11 +117,11 @@ AST Control To Do
 - static terminal boxes, too wide
 
 *-*-*-*-*-*-
+AST Control To Do (1.5.6)
 
-Current AST Control To Do (1.5.6)
 - investigate sync in startup_mount
-    - fix home coordinates formatting
-    - fix sync order & when to turn off tracking
+    - fix home coordinates formatting !
+    - fix sync method & when to turn off tracking
     
 - investigate tracking in track_sun
     - fix sun coordinates formatting
@@ -34,15 +135,18 @@ Current AST Control To Do (1.5.6)
     - later
 
 --------
+Signalling:
+
 - connect weather_monitor signalling to track_sun
     - define, redundant?
+
+- feed webcam data into frame. 
+- feed firecapture screen output into another frame.
 
 - update nstep controls 
     - to what? nstep revamped to buttons to javascript
 
 - update etalon controls
-    - to what? arduino bindings to python
+    - to what? arduino bindings to python?
+    - arduino host on python
     - servo A and servo B, numerical increment
-
-mech:
-- diagnose servo jitter, add ferrite coils 

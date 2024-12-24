@@ -7,8 +7,8 @@ import time
 from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 import threading
-import weather_monitor
-from start_server import StartServer  # Adjust the import if necessary
+import peripherals.weather_monitor as weather_monitor
+from server.start_server import StartServer  # Adjust the import if necessary
 
 app = Flask(__name__)
 socketio = SocketIO(app)
