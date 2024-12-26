@@ -1,196 +1,200 @@
-/* General body styling */
-body, html {
+/* General Styles */
+body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-    color: #333;
     margin: 0;
     padding: 0;
-    height: 100%;
-}
-
-/* Header styling */
-.header {
-    background-color: #2c3e50;
-    color: #ffffff;
-    padding: 15px 20px;
-    text-align: left;
-    position: sticky;
-    top: 0;
-    width: 100%;
-    z-index: 50;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-/* Tabs container */
-.tabs-container {
-    display: flex; /* Flexbox layout */
-}
-
-/* Tab styling */
-.tabs {
     display: flex;
-    flex-direction: column; /* Stack tabs vertically */
-    background-color: #34495e; /* Dark grey for tabs */
-    padding: 10px;
-    border-radius: 5px;
-    width: 200px; /* Fixed width for tab container */
-    margin-right: 20px; /* Space between tabs and content */
-}
-
-.tab-button {
-    background-color: transparent; /* Default background */
-    color: white;
-    border: none;
-    padding: 10px;
-    text-align: left; /* Align text to the left */
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.tab-button:hover {
-    background-color: #2c3e50; /* Darker on hover */
-}
-
-.tab-button.active {
-    background-color: #2c3e50; /* Active tab color */
-}
-
-/* Tab content styling */
-.tab-content-container {
-    flex-grow: 1; /* Allow content to grow */
-}
-
-.tab-content {
-    padding: 20px;
-    background: #ffffff; /* Background for tab content */
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Control panel container */
-.control-panel {
-    display: flex; /* Align tabs and content in a row */
-    padding: 20px;
-    width: 95%;
-    margin: 0 auto;
-    max-width: 1500px;
-}
-
-/* Control rows for horizontal layout */
-.control-row {
-    display: flex; /* Align control items horizontally */
-    gap: 20px; /* Space between control items */
-}
-
-/* Secondary heading styling (h2) */
-h2 {
-    color: #34495e;
-    margin: 10px 0;
-    font-size: 18px;
-}
-
-/* Individual control item styling */
-.control-item {
-    display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    background-color: #dadada;
+    min-height: 100vh;
 }
 
-/* Styling for script output areas */
-pre {
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    border-radius: 5px;
-    padding: 15px;
-    max-height: 250px;
-    overflow-y: auto;
-    margin-top: 10px;
-    width: 100%;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: auto repeat(4, minmax(150px, auto));
+    gap: 10px;
+    width: 90%;
+    max-width: 1200px;
 }
 
-/* Status indicator styling */
-.status-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-left: 10px;
-}
-
-.status-indicator.running {
-    background-color: #27ae60; /* Green */
-}
-
-.status-indicator.stopped {
-    background-color: #c0392b; /* Red */
-}
-
-.status-indicator.error {
-    background-color: #e74c3c; /* Dark red */
-}
-
-.status-indicator.initializing {
-    background-color: #f39c12; /* Yellow */
-}
-
-/* Data display sections styling */
-.data-display {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    padding: 15px;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Banner */
+.banner {
+    grid-column: 1 / span 3;
     text-align: center;
-    margin-top: 10px;
 }
 
-.data-display p {
+.banner img {
+    width: 100%;
+    max-width: 960px;
+    height: auto;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Server Control */
+.server-control {
+    grid-column: 1;
+    grid-row: 2;
+    background-color: #f4cccc;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Solar Calculations */
+.calculations {
+    grid-column: 1;
+    grid-row: 3;
+    background-color: #d9d2e9;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Mount Control */
+.mount-control {
+    grid-column: 1;
+    grid-row: 4 / span 2;
+    background-color: #c9daf8;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* RA and DEC Display */
+.mount-coordinates {
+    margin-bottom: 15px;
+    font-size: 18px;
     font-weight: bold;
-    color: #34495e;
-    margin: 5px 0;
 }
 
-/* Button styling */
-button {
-    background-color: #27ae60;
-    color: white;
+/* Slew Rate Input */
+.slew-rate {
+    margin-top: 15px;
+    display: flex;
+    justify-content: left;
+    align-items: left;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.slew-rate input {
+    width: 80px;
+    padding: 5px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+/* D-pad Layout */
+.dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 20px;
+    justify-items: center;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.dpad-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 16px;
     border: none;
     border-radius: 5px;
-    padding: 10px 15px;
+    background-color: #4a90e2;
+    color: #fff;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.dpad-btn:hover {
+    background-color: #357abd;
+    transform: scale(1.05);
+}
+
+.dpad-stop {
+    width: 50px;
+    height: 50px;
     font-size: 16px;
-    margin-top: 10px;
+    background-color: #e94e77 !important;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
 }
 
-button:hover {
-    background-color: #2ecc71;
+.dpad-stop:hover {
+    background-color: #c8375a;
+    transform: scale(1.1);
 }
 
-button:active {
-    background-color: #1e8449;
-}
 
-button:disabled {
-    background-color: #95a5a6;
-    cursor: not-allowed;
-}
-
-/* Footer styling */
-.footer {
-    background-color: #2c3e50;
-    color: #ffffff;
-    text-align: center;
+/* Weather */
+.weather {
+    grid-column: 2;
+    grid-row: 2;
+    background-color: #d9d2e9;
     padding: 10px;
+    border-radius: 5px;
+}
+
+/* Dome and Etalon Control */
+.dome-etalon-control {
+    grid-column: 2;
+    grid-row: 3;
+    background-color: #fff2cc;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* nSTEP Control */
+.nstep-control {
+    grid-column: 2;
+    grid-row: 4;
+    background-color: #c9daf8;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* File Status */
+.file-status {
+    grid-column: 2;
+    grid-row: 5;
+    background-color: #d9d2e9;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* Science Camera */
+.science-cam {
+    grid-column: 3;
+    grid-row: 2 / span 2;
+    background-color: #d9ead3;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.science-cam img {
     width: 100%;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+    height: auto;
+    border-radius: 5px;
+}
+
+/* Dome Camera */
+.dome-cam {
+    grid-column: 3;
+    grid-row: 4 / span 2;
+    background-color: #d9ead3;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.dome-cam img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
 }

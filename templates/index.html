@@ -3,148 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automated Solar Telescope (AST)</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Automated Solar Telescope Control Panel</title>
+    <link rel="stylesheet" href="static/style.css">
 </head>
-
 <body>
-    <div class="page-wrapper">
-        <header class="header">
-            <h1>Automated Solar Telescope (AST) Control Panel</h1>
+    <div class="container">
+        <!-- Header/Banner -->
+        <header class="banner">
+            <img src="static/banner.png" alt="Automated Solar Telescope Banner">
         </header>
 
-        <main class="control-panel">
-            <div class="tabs-container">
-                <!-- Tabs Container -->
-                <div class="tabs">
-                    <button class="tab-button" onclick="openTab(event, 'weather_monitor')">Weather Monitor</button>
-                    <button class="tab-button" onclick="openTab(event, 'server_control')">Server Control</button>
-                    <button class="tab-button" onclick="openTab(event, 'mount_control')">Mount Control</button>
-                    <button class="tab-button" onclick="openTab(event, 'peripherals')">Peripherals</button>
-                </div>
-
-                <!-- Tab Content -->
-                <div class="tab-content-container">
-                    <div id="weather_monitor" class="tab-content">
-                        <h2>Weather Monitor <span id="weather_monitor_status" class="status-indicator"></span></h2>
-                        <button onclick="startScript('weather_monitor')" id="weather_monitor_button">Start Weather Monitor</button>
-                        <div class="weather-display">
-                            <p id="weather_conditions">Temperature: -- °C, Conditions: --</p>
-                            <p id="last_checked">Last checked: Not yet started</p>
-                        </div>
-                    </div>
-
-                    <div id="server_control" class="tab-content" style="display:none;">
-                        <h2>Server Control</h2>
-                        <div class="control-row">
-                            <div class="control-item">
-                                <h3>Start Server <span id="start_server_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('start_server')" id="start_server_button">Start Server</button>
-                                <pre id="start_server_output">Output will appear here...</pre>
-                            </div>
-                            <div class="control-item">
-                                <h3>Kill Server <span id="kill_server_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('kill_server')" id="kill_server_button">Kill Server</button>
-                                <pre id="kill_server_output">Output will appear here...</pre>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="mount_control" class="tab-content" style="display:none;">
-                        <h2>Mount Control</h2>
-                        <div class="control-row">
-                            <div class="control-item">
-                                <h3>PMC8 Mount Startup <span id="startup_mount_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('startup_mount')" id="startup_mount_button">Startup PMC8 Mount</button>
-                                <pre id="startup_mount_output">Output will appear here...</pre>
-                            </div>
-                            <div class="control-item">
-                                <h3>Sun Tracking <span id="track_sun_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('track_sun')" id="track_sun_button">Start Sun Tracking</button>
-                                <pre id="track_sun_output">Output will appear here...</pre>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="peripherals" class="tab-content" style="display:none;">
-                        <h2>Peripherals</h2>
-                        <div class="control-row">
-                            <div class="control-item">
-                                <h3>nSTEP Control <span id="nstep_control_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('nstep_control')" id="nstep_control_button">Start nSTEP Control</button>
-                                <pre id="nstep_control_output">Output will appear here...</pre>
-                            </div>
-                            <div class="control-item">
-                                <h3>Etalon Control System (ECS) <span id="etalon_control_status" class="status-indicator"></span></h3>
-                                <button onclick="startScript('etalon_control')" id="etalon_control_button">Start ECS Control</button>
-                                <pre id="etalon_control_output">Output will appear here...</pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Server Control -->
+        <section class="server-control">
+            <h3>INDIGO Server Control</h3>
+            <div class="server-buttons">
+                <button id="start-server">Start</button>
+                <button id="kill-server">Kill</button>
             </div>
-        </main>
+            <div class="log-output">
+                <p>INDIGO server logging...</p>
+            </div>
+        </section>
 
-        <footer class="footer">
-            <p>Project by [Nathnael Kahassai]. All Rights Reserved. 2024.</p>
-        </footer>
+        <!-- Solar Calculations -->
+        <section class="calculations">
+            <h3>Solar Calculations</h3>
+            <p>RA: <span id="ra">00:00:00.00</span></p>
+            <p>DEC: <span id="dec">00:00:00.00</span></p>
+            <p>Sunrise: -- | Sunset: -- | Meridian: --</p>
+        </section>
+
+        <!-- Mount Control -->
+        <section class="mount-control">
+            <h3>Mount Control</h3>
+
+            <!-- RA and DEC Display -->
+            <div class="mount-coordinates">
+                <p>RA: <span id="ra-placeholder">00:00:00.00</span></p>
+                <p>DEC: <span id="dec-placeholder">00:00:00.00</span></p>
+            </div>
+
+            <!-- Slew Rate Input -->
+            <div class="slew-rate">
+                <label for="slew-rate">Rate:</label>
+                <input type="number" id="slew-rate" placeholder="Enter rate">
+            </div>
+
+            <!-- D-pad for Slewing -->
+            <div class="dpad">
+                <button id="slew-west" class="dpad-btn">W</button>
+                <div class="dpad-middle">
+                    <button id="slew-north" class="dpad-btn">N</button>
+                    <button id="stop-mount" class="dpad-stop">Stop</button>
+                    <button id="slew-south" class="dpad-btn">S</button>
+                </div>
+                <button id="slew-east" class="dpad-btn">E</button>
+            </div>
+
+        </section>
+
+        <!-- Dome and Etalon Control -->
+        <section class="dome-etalon-control">
+            <h3>Dome & Etalon Control</h3>
+            <div class="dome-control">
+                <h4>Dome Control</h4>
+                <button id="open-dome">Open</button>
+                <button id="close-dome">Close</button>
+            </div>
+            <div class="etalon-control">
+                <h4>Etalon 1</h4>
+                <button id="etalon1-inward">Inward</button>
+                <button id="etalon1-outward">Outward</button>
+                <input type="number" placeholder="Speed" id="etalon1-speed">
+                <h4>Etalon 2</h4>
+                <button id="etalon2-inward">Inward</button>
+                <button id="etalon2-outward">Outward</button>
+                <input type="number" placeholder="Speed" id="etalon2-speed">
+            </div>
+        </section>
+
+        <!-- Weather -->
+        <section class="weather">
+            <h3>Weather @ Chapel Hill, NC</h3>
+            <p>Condition: <span id="condition">xxxxx</span></p>
+            <p>Temperature: <span id="temperature">XX.X</span> °C</p>
+            <p>Wind: <span id="wind">10</span> km/h</p>
+        </section>
+
+        <!-- nSTEP Control -->
+        <section class="nstep-control">
+            <h3>nSTEP Control</h3>
+            <div class="nstep-buttons">
+                <button id="nstep-inward">Inward</button>
+                <button id="nstep-outward">Outward</button>
+            </div>
+            <div class="nstep-info">
+                <p>Speed: <input type="number" id="nstep-speed" placeholder="Enter Speed"></p>
+                <p>Position: <span id="nstep-position">0</span></p>
+            </div>
+            <button id="nstep-abort">Abort Motion</button>
+        </section>
+
+        <!-- Dome Camera -->
+        <section class="dome-cam">
+            <h3>Dome Camera</h3>
+            <img src="path/to/dome-cam-feed.jpg" alt="Dome Camera Feed">
+        </section>
+
+        <!-- Science Camera -->
+        <section class="science-cam">
+            <h3>Science Camera</h3>
+            <img src="path/to/science-cam-feed.jpg" alt="Science Camera Feed">
+        </section>
+
+        <!-- File Status -->
+        <section class="file-status">
+            <h3>File Status</h3>
+            <p>Status: <span id="file-status">Idle</span></p>
+        </section>
     </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
-    <script>
-        const socket = io.connect();
-
-        function startScript(script) {
-            fetch(`/start/${script}`, { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                });
-        }
-
-        function openTab(evt, tabName) {
-            const tabContents = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < tabContents.length; i++) {
-                tabContents[i].style.display = "none";  
-            }
-            document.getElementById(tabName).style.display = "block";  
-        }
-
-        // Listen for real-time updates from the server and update the UI
-        socket.on('weather_update', function(data) {
-            document.getElementById('weather_conditions').innerText = `Temperature: ${data.temperature} °C, Conditions: ${data.sky_conditions}`;
-            document.getElementById('last_checked').innerText = `Last checked: ${data.last_checked}`;
-            updateStatusIndicator('weather_monitor_status', 'running');
-        });
-
-        // Socket listeners for server control updates
-        socket.on('start_server_update', function(data) {
-            updateStatusIndicator('start_server_status', 'running');
-        });
-
-        socket.on('kill_server_update', function(data) {
-            updateStatusIndicator('kill_server_status', 'stopped');
-        });
-
-        // Function to update output boxes for each script
-        socket.on('start_server_output', function(data) {
-            updateOutput('start_server', data.message);
-        });
-
-        // More socket listeners for output updates...
-
-        // Function to update the output box with real-time data
-        function updateOutput(script, message) {
-            const outputElement = document.getElementById(`${script}_output`);
-            outputElement.innerText += `\n${message}`;
-            outputElement.scrollTop = outputElement.scrollHeight; // Auto-scroll to the bottom
-        }
-
-        // Function to update the status indicator based on the script's status
-        function updateStatusIndicator(elementId, status) {
-            const element = document.getElementById(elementId);
-            element.className = `status-indicator ${status}`;
-        }
-    </script>
 </body>
 </html>
