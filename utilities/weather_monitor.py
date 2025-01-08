@@ -34,7 +34,7 @@ class WeatherMonitor:
                 'temperature': round(temperature, 2),
                 'rain_chance': rain_chance,
                 'sky_conditions': sky_conditions,
-                'last_checked': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'last_checked': datetime.now().strftime('%m-%d %H:%M:%S')
             }
         except requests.RequestException as e:
             print(f"Error fetching weather data: {e}")

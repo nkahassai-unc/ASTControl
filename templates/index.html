@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Automated Solar Telescope Control Panel</title>
     <link rel="stylesheet" href="static/style.css">
 </head>
+
 <body>
     <div class="container">
         <!-- Header/Banner -->
@@ -16,6 +18,7 @@
         <!-- Server Control -->
         <section class="server-control">
             <h3>INDIGO Server Control</h3>
+            <p>Connected on <span id="server-ip">IP</span></p>
             <div class="server-buttons">
                 <button id="start-server">Start</button>
                 <button id="kill-server">Kill</button>
@@ -28,8 +31,11 @@
         <!-- Solar Calculations -->
          <section class="calculations">
             <h3>Solar Calculations</h3>
-            <p>Alt: <span id="solar_alt">--</span> | Az: <span id="solar_az">--</span></p>
-            <p>Sunrise: <span id="sunrise">--</span> | Sunset: <span id="sunset">--</span> | Meridian: <span id="solar_noon">--</span></p>
+            <p>Last Checked: <span id ="sun_time"> X/XX/XX 00:00</span></p>
+            <div class="mount-coordinates">
+                <p>Altitude: <span id="solar_alt">--</span> | Azimuth: <span id="solar_az">--</span></p>
+                <p>Rise: <span id="sunrise">--</span> | Set: <span id="sunset">--</span> | Meridian: <span id="solar_noon">--</span></p>
+            </div>
         </section>
 
         <!-- Mount Control -->
@@ -84,7 +90,6 @@
         <section class="weather">
             <h3>Weather @ Chapel Hill, NC</h3>
             <p>Last Checked: <span id ="last_checked"> X/XX/XX 00:00</span></p>
-            <button id="weather-refresh" class="weather-refresh">Refresh</button>
             <div class="mount-coordinates">
                 <p>Condition: <span id="condition">xxxxx</span></p>
                 <p>Temperature: <span id="temperature">XX.X</span> °C | Wind: <span id="wind">10</span> km/h</p>
@@ -123,6 +128,7 @@
             <p>Status: <span id="file-status">Idle</span></p>
         </section>
     </div>
+    <script src="static/socket.io.min.js"></script>
     <script src="static/ast.js"></script>
 </body>
 </html>

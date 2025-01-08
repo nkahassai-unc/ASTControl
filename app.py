@@ -2,20 +2,16 @@ from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 import threading
 import time
-import json
-from peripherals.weather_monitor import WeatherMonitor
-from mount.solar_calc import SolarCalculator  # Adjust the import based on your project structure
+from utilities.weather_monitor import WeatherMonitor
+from utilities.solar_calc import SolarCalculator
+from server.server_con import IndigoServerController
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-manual_refresh_requested = threading.Event()
 data_lock = threading.Lock()
 
-
-#WEATHER MONITORING
-
-# Shared weather data and manual refresh flag
+# Shared weather data
 weather_data = {
     "temperature": "--",
     "sky_conditions": "Unknown",
@@ -23,72 +19,95 @@ weather_data = {
     "last_checked": None
 }
 
+# Shared solar data
+solar_data = {
+    "solar_alt": "--", "solar_az": "--", 
+    "sunrise": "--", "sunset": "--", 
+    "solar_noon": "--", "sun_time": None
+}
+
+# Instantiate monitors
+weather_monitor = WeatherMonitor()
+solar_calculator = SolarCalculator()
+
 def weather_thread():
-    """Weather monitoring thread for periodic and manual updates."""
-    weather_monitor = WeatherMonitor()
+    """Thread to update weather data and emit real-time updates."""
     print("Weather thread started")
     while True:
         try:
-            # Fetch weather data
+            # Update weather data
             latest_data = weather_monitor.check_weather()
             with data_lock:
                 weather_data.update(latest_data)
+            socketio.emit("weather_update", weather_data)  # Emit updated data to clients
             print(f"Weather updated: {weather_data}")
-
-            # Wait for 20 minutes or a manual refresh
-            if not manual_refresh_requested.wait(timeout=20 * 60):  # Timeout of 20 minutes
-                continue
-            print("Manual refresh triggered")
-            manual_refresh_requested.clear()  # Reset the event
-
+            time.sleep(1200)  # Update every 20 minutes
         except Exception as e:
             print(f"Error in weather monitor thread: {e}")
 
+def solar_thread():
+    """Thread to update solar data and emit real-time updates."""
+    print("Solar thread started")
+    while True:
+        try:
+            with data_lock:
+                solar_calculator.update_solar_position()
+                solar_data.update(solar_calculator.get_all_data())
+            socketio.emit("solar_update", solar_data)  # Emit updated data to clients
+            print(f"Solar data updated: {solar_data}")
+            time.sleep(20)  # Update every 20 seconds
+        except Exception as e:
+            print(f"Error in solar monitor thread: {e}")
 
+# Raspberry Pi Details
+RASPBERRY_PI_IP = "192.168.1.183"
+USERNAME = "pi"
+PASSWORD = "raspberry"
+
+# INDIGO Server Controller
+server_controller = IndigoServerController(
+    ip=RASPBERRY_PI_IP,
+    username=USERNAME,
+    password=PASSWORD,
+    log_callback=lambda message: socketio.emit("server_log", message),
+)
+
+# Server Endpoints
+@app.route("/start_server", methods=["POST"])
+def start_server():
+    """Start the INDIGO server on the Raspberry Pi."""
+    result = server_controller.start_indigo_server()
+    return jsonify({"status": "success", "message": result})
+
+@app.route("/kill_server", methods=["POST"])
+def kill_server():
+    """Kill the INDIGO server on the Raspberry Pi."""
+    result = server_controller.kill_indigo_server()
+    return jsonify({"status": "success", "message": result})
+
+# Weather Endpoint
 @app.route('/refresh_weather', methods=['GET'])
 def refresh_weather():
-    """Manual weather refresh endpoint."""
-    manual_refresh_requested.set()  # Trigger immediate refresh
+    """Return current weather data."""
     with data_lock:
         return jsonify(weather_data)
 
-#SOLAR CALCULATIONS
-
-# Shared solar data
-solar_data = {"altitude": "--", "azimuth": "--", "sunrise": "--", "sunset": "--", "solar_noon": "--", "last_updated": None}
-solar_calculator = SolarCalculator()
-
-def update_solar_info():
-    """Update solar position every 20 seconds and sunrise/sunset every 12 hours."""
-    while True:
-        with data_lock:
-            solar_calculator.update_solar_position()
-            solar_data.update(solar_calculator.get_all_data())
-        socketio.emit("solar_update", solar_data)
-        threading.Event().wait(20)  # Update solar position every 20 seconds
-
-def refresh_sun_times():
-    """Update sunrise and sunset data every 12 hours."""
-    while True:
-        solar_calculator.update_sun_times()
-        threading.Event().wait(12 * 60 * 60)  # Refresh every 12 hours
-
+# Solar Endpoint
 @app.route('/refresh_solar', methods=['GET'])
 def refresh_solar():
     """Return current solar data."""
     with data_lock:
         return jsonify(solar_data)
-    
-# Serve the homepage
+
+# Home Page
 @app.route('/')
 def home():
     return render_template('index.html')
 
-if __name__ == '__main__': 
-    # Start weather monitor thread
+if __name__ == '__main__':
+    # Start threads for real-time updates
     threading.Thread(target=weather_thread, daemon=True).start()
-    # Start solar monitor thread
-    threading.Thread(target=update_solar_info, daemon=True).start()
-    threading.Thread(target=refresh_sun_times, daemon=True).start()
-    # Run Flask app
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    threading.Thread(target=solar_thread, daemon=True).start()
+
+    # Run Flask app with Socket.IO
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True)

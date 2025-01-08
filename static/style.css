@@ -49,8 +49,6 @@ body {
     background-color: #fff2cc;
     padding: 10px;
     border-radius: 5px;
-    font-size: 18px;
-    font-weight: bold;
 }
 
 /* Mount Control */
@@ -144,13 +142,6 @@ body {
     border-radius: 5px;
 }
 
-.weather-refresh {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
 
 /* Dome and Etalon Control */
 .dome-etalon-control {
