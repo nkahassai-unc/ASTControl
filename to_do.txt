@@ -1,11 +1,15 @@
 Current ASTControl To Do (2.4):
 
 Next test: Run control panel
-    - test indigo server connection
-    - ensure solar calculations works
-    - test mount control works
-    - test nstep works
-    - test firecapture works & previews
+    - test indigo server connection (Reconnect)
+
+    - ensure solar calculations works (WIP)
+
+    - test mount control works (Next)
+    - test nstep works (Simple)
+    
+    - test firecapture works (Reconnect, SSH run_fc.py)
+    - test firecpture previews (X screenshot previews from PC)
     - test file mover & reports
 
     - test webcam (eventually)

@@ -6,7 +6,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #dadada;
+    background-color: #c2c2c2;
     min-height: 100vh;
 }
 
@@ -46,9 +46,11 @@ body {
 .calculations {
     grid-column: 1;
     grid-row: 3;
-    background-color: #d9d2e9;
+    background-color: #fff2cc;
     padding: 10px;
     border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 /* Mount Control */
@@ -142,6 +144,14 @@ body {
     border-radius: 5px;
 }
 
+.weather-refresh {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
 /* Dome and Etalon Control */
 .dome-etalon-control {
     grid-column: 2;
@@ -151,14 +161,66 @@ body {
     border-radius: 5px;
 }
 
-/* nSTEP Control */
+/* nSTEP Control Section */
 .nstep-control {
     grid-column: 2;
     grid-row: 4;
     background-color: #c9daf8;
-    padding: 10px;
+    padding: 15px;
     border-radius: 5px;
+    text-align: center;
 }
+
+.nstep-dpad {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px; /* Space between buttons */
+    margin-bottom: 10px;
+}
+
+.nstep-btn {
+    width: 50px;
+    height: 30px;
+    font-size: 12px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4a90e2;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.nstep-btn:hover {
+    background-color: #357abd;
+    transform: scale(1.05);
+}
+
+.nstep-stop-btn {
+    width: 60px; /* Slightly wider for emphasis */
+    height: 30px;
+    font-size: 16px;
+    background-color: #e94e77;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.nstep-stop-btn:hover {
+    background-color: #c8375a;
+    transform: scale(1.1);
+}
+
+.nstep-info {
+    margin-top: 10px;
+    text-align: left;
+    font-size: 18px;
+    font-weight: bold;
+}
+
 
 /* File Status */
 .file-status {

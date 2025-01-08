@@ -26,11 +26,10 @@
         </section>
 
         <!-- Solar Calculations -->
-        <section class="calculations">
+         <section class="calculations">
             <h3>Solar Calculations</h3>
-            <p>RA: <span id="ra">00:00:00.00</span></p>
-            <p>DEC: <span id="dec">00:00:00.00</span></p>
-            <p>Sunrise: -- | Sunset: -- | Meridian: --</p>
+            <p>Alt: <span id="solar_alt">--</span> | Az: <span id="solar_az">--</span></p>
+            <p>Sunrise: <span id="sunrise">--</span> | Sunset: <span id="sunset">--</span> | Meridian: <span id="solar_noon">--</span></p>
         </section>
 
         <!-- Mount Control -->
@@ -39,12 +38,11 @@
 
             <!-- RA and DEC Display -->
             <div class="mount-coordinates">
-                <p>RA: <span id="ra-placeholder">00:00:00.00</span></p>
-                <p>DEC: <span id="dec-placeholder">00:00:00.00</span></p>
+                <p>RA: <span id="ra-placeholder">00:00:00.00</span> | DEC: <span id="dec-placeholder">00:00:00.00</span></p>
             </div>
 
             <!-- Slew Rate Input -->
-            <div class="slew-rate">
+            <div class="mount-coordinates">
                 <label for="slew-rate">Rate:</label>
                 <input type="number" id="slew-rate" placeholder="Enter rate">
             </div>
@@ -85,24 +83,27 @@
         <!-- Weather -->
         <section class="weather">
             <h3>Weather @ Chapel Hill, NC</h3>
-            <p>Condition: <span id="condition">xxxxx</span></p>
-            <p>Temperature: <span id="temperature">XX.X</span> °C</p>
-            <p>Wind: <span id="wind">10</span> km/h</p>
+            <p>Last Checked: <span id ="last_checked"> X/XX/XX 00:00</span></p>
+            <button id="weather-refresh" class="weather-refresh">Refresh</button>
+            <div class="mount-coordinates">
+                <p>Condition: <span id="condition">xxxxx</span></p>
+                <p>Temperature: <span id="temperature">XX.X</span> °C | Wind: <span id="wind">10</span> km/h</p>
+            </div>
         </section>
 
         <!-- nSTEP Control -->
         <section class="nstep-control">
             <h3>nSTEP Control</h3>
-            <div class="nstep-buttons">
-                <button id="nstep-inward">Inward</button>
-                <button id="nstep-outward">Outward</button>
-            </div>
             <div class="nstep-info">
-                <p>Speed: <input type="number" id="nstep-speed" placeholder="Enter Speed"></p>
-                <p>Position: <span id="nstep-position">0</span></p>
+                <p>Position: <span id="nstep-position">0</span> | Speed: <input type="number" id="nstep-speed" placeholder="Enter Speed"></p>
             </div>
-            <button id="nstep-abort">Abort Motion</button>
+            <div class="nstep-dpad">
+                <button id="nstep-inward" class="nstep-btn">Inward</button>
+                <button id="nstep-stop" class="nstep-stop-btn">Stop</button>
+                <button id="nstep-outward" class="nstep-btn">Outward</button>
+            </div>
         </section>
+
 
         <!-- Dome Camera -->
         <section class="dome-cam">
@@ -122,5 +123,6 @@
             <p>Status: <span id="file-status">Idle</span></p>
         </section>
     </div>
+    <script src="static/ast.js"></script>
 </body>
 </html>

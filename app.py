@@ -1,88 +1,94 @@
-# Ensure this is the very first import before any other
-import eventlet
-eventlet.monkey_patch()
-
-import json
-import time
 from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 import threading
-import peripherals.weather_monitor as weather_monitor
-from server.start_server import StartServer  # Adjust the import if necessary
+import time
+import json
+from peripherals.weather_monitor import WeatherMonitor
+from mount.solar_calc import SolarCalculator  # Adjust the import based on your project structure
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# Centralized status store for managing script states and outputs
-status_store = {
-    "server": "stopped",
-    "weather": {
-        "temperature": "--",
-        "rain_chance": "--",
-        "sky_conditions": "--",
-        "last_checked": "Not yet started"
-    }
+manual_refresh_requested = threading.Event()
+data_lock = threading.Lock()
+
+
+#WEATHER MONITORING
+
+# Shared weather data and manual refresh flag
+weather_data = {
+    "temperature": "--",
+    "sky_conditions": "Unknown",
+    "wind_speed": "--",
+    "last_checked": None
 }
 
-# Dictionary to store threads for scripts
-script_threads = {}
+def weather_thread():
+    """Weather monitoring thread for periodic and manual updates."""
+    weather_monitor = WeatherMonitor()
+    print("Weather thread started")
+    while True:
+        try:
+            # Fetch weather data
+            latest_data = weather_monitor.check_weather()
+            with data_lock:
+                weather_data.update(latest_data)
+            print(f"Weather updated: {weather_data}")
 
-# Function to log output and emit updates via SocketIO
-def log_output(script_name, log_message):
-    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-    try:
-        data = json.loads(log_message)
-        if 'temperature' in data:
-            # Update weather status
-            status_store["weather"] = {
-                "temperature": data['temperature'],
-                "rain_chance": data['rain_chance'],
-                "sky_conditions": data['sky_conditions'],
-                "last_checked": data['last_checked']
-            }
-            socketio.emit('weather_update', status_store["weather"])
-    except json.JSONDecodeError:
-        message = f"[{timestamp}] {log_message}"
-        socketio.emit(f'{script_name}_update', {'message': message})
+            # Wait for 20 minutes or a manual refresh
+            if not manual_refresh_requested.wait(timeout=20 * 60):  # Timeout of 20 minutes
+                continue
+            print("Manual refresh triggered")
+            manual_refresh_requested.clear()  # Reset the event
 
-# Function to start a script and manage its thread
-def start_script(script_name):
-    if script_name == "weather_monitor":
-        if "weather_monitor" not in script_threads or not script_threads["weather_monitor"].is_alive():
-            weather_thread = threading.Thread(target=weather_monitor.main, args=(lambda msg: log_output("weather", msg),))
-            weather_thread.daemon = True
-            weather_thread.start()
-            script_threads["weather_monitor"] = weather_thread
-            log_output("weather_monitor", "Weather monitor started.")
+        except Exception as e:
+            print(f"Error in weather monitor thread: {e}")
 
-    elif script_name == "start_server":
-        if "start_server" not in script_threads:
-            server_starter = StartServer(lambda msg: log_output("start_server", msg))
-            server_thread = threading.Thread(target=server_starter.run)
-            server_thread.daemon = True
-            server_thread.start()
-            script_threads["start_server"] = server_thread
-            log_output("start_server", "INDIGO server started.")
 
-# Flask route to start a script
-@app.route('/start/<script_name>', methods=['POST'])
-def start_script_route(script_name):
-    if script_name in ["weather_monitor", "start_server"]:
-        start_script(script_name)
-        return jsonify({"status": f"{script_name} started"})
-    else:
-        return jsonify({"status": f"{script_name} not recognized"})
+@app.route('/refresh_weather', methods=['GET'])
+def refresh_weather():
+    """Manual weather refresh endpoint."""
+    manual_refresh_requested.set()  # Trigger immediate refresh
+    with data_lock:
+        return jsonify(weather_data)
 
-# Flask route to get the current status of all scripts
-@app.route('/get_status', methods=['GET'])
-def get_status():
-    return jsonify(status_store)
+#SOLAR CALCULATIONS
 
+# Shared solar data
+solar_data = {"altitude": "--", "azimuth": "--", "sunrise": "--", "sunset": "--", "solar_noon": "--", "last_updated": None}
+solar_calculator = SolarCalculator()
+
+def update_solar_info():
+    """Update solar position every 20 seconds and sunrise/sunset every 12 hours."""
+    while True:
+        with data_lock:
+            solar_calculator.update_solar_position()
+            solar_data.update(solar_calculator.get_all_data())
+        socketio.emit("solar_update", solar_data)
+        threading.Event().wait(20)  # Update solar position every 20 seconds
+
+def refresh_sun_times():
+    """Update sunrise and sunset data every 12 hours."""
+    while True:
+        solar_calculator.update_sun_times()
+        threading.Event().wait(12 * 60 * 60)  # Refresh every 12 hours
+
+@app.route('/refresh_solar', methods=['GET'])
+def refresh_solar():
+    """Return current solar data."""
+    with data_lock:
+        return jsonify(solar_data)
+    
 # Serve the homepage
 @app.route('/')
 def home():
-    return render_template('index.html', weather=status_store["weather"])
+    return render_template('index.html')
 
-# Main entry point
-if __name__ == '__main__':
+if __name__ == '__main__': 
+    # Start weather monitor thread
+    threading.Thread(target=weather_thread, daemon=True).start()
+    # Start solar monitor thread
+    threading.Thread(target=update_solar_info, daemon=True).start()
+    threading.Thread(target=refresh_sun_times, daemon=True).start()
+    # Run Flask app
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

@@ -1,3 +1,4 @@
+10b2f1d4a200b534bb2d4bf69bddcace
 solarscope@raspberrypi:/media/sda2/fc_test/solar_capture $ indigo_prop_tool list
 Server.INFO.VERSION = "2.0-282"
 Server.INFO.SERVICE = "raspberrypi"
