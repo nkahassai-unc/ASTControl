@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 import threading
 import time
+
 from utilities.weather_monitor import WeatherMonitor
 from utilities.solar_calc import SolarCalculator
 from server.server_con import IndigoServerController

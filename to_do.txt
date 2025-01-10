@@ -1,25 +1,29 @@
-Current ASTControl To Do (2.4):
+Current ASTControl To Do (2.7):
 
 Next test: Run control panel
     - test indigo server connection (Reconnect)
 
-    - ensure solar calculations works (WIP)
+    - ensure solar calculations works (Yes)
 
     - test mount control works (Next)
     - test nstep works (Simple)
-    
+
     - test firecapture works (Reconnect, SSH run_fc.py)
     - test firecpture previews (X screenshot previews from PC)
-    - test file mover & reports
+    - test file mover & reports (next)
 
-    - test webcam (eventually)
+    - test webcam (Yes)
+
 After test:
     - work on Automation
     - work on arduino, dome & etalons
 
+*-*-*-*-*-*-*-
+AST Frontend & Backend Architecture
+
 Web Design & Layout:
 
-    -- Control & Feedback --
+    -- Control & Feedback -- # Mount # Server
     Server Module:
         - Connect & Disconnect from Server
         - Scrollable logging (indigo/server)
@@ -28,34 +32,33 @@ Web Design & Layout:
         - Live RA/DEC display.
         - D-pad for slewing (N, S, E, W) with speed adjustment.
         - Toggle slew rates.
-        - Toggle tracking modes (Solar, Sidereal).
+        - Toggle tracking modes (Solar).
 
-    --Information--
-    Calculations Module:
+    --Information-- # Utilities
+    Solar Calculations Module:
         - Realtime Sun’s position, Sunrise, Sunset
-        - Display Meridian crossing? LST?
+        - Display Meridian crossing.
 
     Weather Module (OpenWeatherMap API):
         - Periodic weather data (temperature, humidity, wind).
         - Safety warnings for unfavorable conditions.
         
-    --Control & Feedback--
-    Dome Control Module (add, arduino):
+    --Control & Feedback-- # Peripherals
+    Dome & Etalon Control Module (arduino):
         - Open/Close dome button (servo control).
         - Weather signalling integration for dome.
 
-    Etalon Control Module (add, arduino):
         - Inward / Outward buttons for two servos.
-        - Speed control for fine adjustments.
+        - Speed control slider for fine adjustments.
         - Relative position display.
     
     nSTEP Focuser Control Module:
-        - Speed Control: Buttons for adjusting speed (e.g., slow, medium, fast)
+        - Speed Control: Slider for adjusting speed.
         - Direction Control: Buttons for inward and outward movement.
         - Position Feedback: Display current position (e.g., steps or absolute position).
         - Abort Motion: Button to stop motion immediately.
     
-    --Information--
+    --Information-- # Utilities
     Dome Cam:
         - Periodic (~ 1 FPS) camera feed from Dome webcam.
 
@@ -69,7 +72,7 @@ Web Design & Layout:
 ---------
 Mechancial:
 
-    - (Resolved) diagnose servo jitter, add ferrite coils 
+    - (Resolved) diagnose servo jitter, added ferrite coils 
     - 3D print box embedding coils & GPIO & arduino
     - wire tilt sensor xtension onto dome
     - 3D print holder for webcam
@@ -83,6 +86,8 @@ Automation & Backend Architecture:
         # ensure API is being fed correctly
         # check threading memory
         # asynchronous architecture
+        ---
+        - solved with server_con.py (2.6)
 
     mount:
         - startup_mount.py
@@ -92,6 +97,8 @@ Automation & Backend Architecture:
         # startup mount ensure correct sync
         # track_sun runs nominally, startup & shutdown one time
         # incoporate arduino dome signalling
+        ---
+        - new mount_con.py (TBD)
 
     camera:
         - run_fc.py
@@ -99,18 +106,22 @@ Automation & Backend Architecture:
         # run firecapture and batch script in fc
         # screenshot periodic from firecapture & feed into webserver
         # delete screenshots after 50, (option for 1 fps to 1/10, 1/30, 1/60)
+        ---
+        - new firecapture handler .py (TBD)
 
     peripherals:
         - etalon_control.py
         - nstep_control.py
         - weather_monitor.py
         # javascript buttons to webserver
+        ---
+        - solved and upgradable
 
     files & processing:
         - file_handler.py
         # resestablish FTP connection (Q://)
 
-        - TBD feed files into AS4! and IMPPG
+        - feed files into AS4! and IMPPG (TBD)
 
     present:
         - TBD feed files into output gif loops 
