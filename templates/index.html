@@ -36,11 +36,16 @@
                 <p>Altitude: <span id="solar_alt">--</span> | Azimuth: <span id="solar_az">--</span></p>
                 <p>Rise: <span id="sunrise">--</span> | Set: <span id="sunset">--</span> | Meridian: <span id="solar_noon">--</span></p>
             </div>
+            <div class="server-buttons">
+                <button id="start-mount">Start Mount</button>
+                <button id="track-sun">Track Sun</button>
+                <button id="stop-mount">Stop Mount</button>
+            </div>
         </section>
 
         <!-- Mount Control -->
         <section class="mount-control">
-            <h3>Mount Control</h3>
+            <h3>PMC8 Mount Control</h3>
 
             <!-- RA and DEC Display -->
             <div class="mount-coordinates">
@@ -58,7 +63,7 @@
                 <button id="slew-west" class="dpad-btn">W</button>
                 <div class="dpad-middle">
                     <button id="slew-north" class="dpad-btn">N</button>
-                    <button id="stop-mount" class="dpad-stop">Stop</button>
+                    <button id="stop-mount" class="dpad-stop">STOP</button>
                     <button id="slew-south" class="dpad-btn">S</button>
                 </div>
                 <button id="slew-east" class="dpad-btn">E</button>
@@ -70,19 +75,21 @@
         <section class="dome-etalon-control">
             <h3>Dome & Etalon Control</h3>
             <div class="dome-control">
-                <h4>Dome Control</h4>
-                <button id="open-dome">Open</button>
-                <button id="close-dome">Close</button>
+                <p> <b>Dome Position: </b><span id="dome-position">0</span></p>
+                <button id="open-dome">OPEN</button>
+                <button id="close-dome">CLOSE</button>
             </div>
             <div class="etalon-control">
-                <h4>Etalon 1</h4>
-                <button id="etalon1-inward">Inward</button>
-                <button id="etalon1-outward">Outward</button>
-                <input type="number" placeholder="Speed" id="etalon1-speed">
-                <h4>Etalon 2</h4>
-                <button id="etalon2-inward">Inward</button>
-                <button id="etalon2-outward">Outward</button>
-                <input type="number" placeholder="Speed" id="etalon2-speed">
+                <p> <b>Etalon 1 Position: </b><span id="etalon1-position">0</span></p>
+                <p><input type="number" placeholder="Etalon 1 Rate" id="etalon1-rate"></p>
+                <button id="etalon1-inward">IN</button>
+                <button id="etalon1-stop" class="nstep-stop-btn">STOP</button>
+                <button id="etalon1-outward">OUT</button>
+                <p> <b>Etalon 2 Position: </b><span id="etalon2-position">0</span></p>
+                <p><input type="number" placeholder="Etalon 2 Rate" id="etalon2-rate"></p>
+                <button id="etalon2-inward">IN</button>
+                <button id="etalon2-stop" class="nstep-stop-btn">STOP</button>
+                <button id="etalon2-outward">OUT</button>
             </div>
         </section>
 
@@ -98,15 +105,12 @@
 
         <!-- nSTEP Control -->
         <section class="nstep-control">
-            <h3>nSTEP Control</h3>
-            <div class="nstep-info">
-                <p>Position: <span id="nstep-position">0</span> | Speed: <input type="number" id="nstep-speed" placeholder="Enter Speed"></p>
-            </div>
-            <div class="nstep-dpad">
-                <button id="nstep-inward" class="nstep-btn">Inward</button>
-                <button id="nstep-stop" class="nstep-stop-btn">Stop</button>
-                <button id="nstep-outward" class="nstep-btn">Outward</button>
-            </div>
+            <h3>nSTEP Focuser Control </h3>
+            <b>nSTEP Focuser Position: </b><span id="nstep-position">0</span></p> 
+            <input type="number" id="nstep-rate" placeholder="nSTEP Rate"></p>
+            <button id="nstep-inward" >IN</button>
+            <button id="nstep-stop" class="nstep-stop-btn">STOP</button>
+            <button id="nstep-outward" >OUT</button>
         </section>
 
 

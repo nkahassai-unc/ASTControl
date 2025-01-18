@@ -1,22 +1,32 @@
-Current ASTControl To Do (2.7):
+Current ASTControl To Do (2.7.1):
 
-Next test: Run control panel
+Next test: Run control panel. Local testing.
     - test indigo server connection (Reconnect)
 
     - ensure solar calculations works (Yes)
 
-    - test mount control works (Next)
-    - test nstep works (Simple)
+    - test webcam (Yes, motionplus server works)
+
+    - test mount control works (Next, test with simulator)
+        # defunct with INDIGO control panel
+    
+    new: 
+
+    - add scripting agent ability, return scripting module.
+        - startup_mount
+        - track_sun
+        - shutdown_mount
+
+    - test nstep works (Simple, finish wiring buttons; via SSH prop_tool, or JS INDIGO API)
 
     - test firecapture works (Reconnect, SSH run_fc.py)
     - test firecpture previews (X screenshot previews from PC)
     - test file mover & reports (next)
 
-    - test webcam (Yes)
 
 After test:
-    - work on Automation
-    - work on arduino, dome & etalons
+    - work on Automation: scripting agent and panel
+    - work on arduino, dome & etalons: arduino ssh server
 
 *-*-*-*-*-*-*-
 AST Frontend & Backend Architecture
