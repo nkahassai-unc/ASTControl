@@ -45,7 +45,7 @@
 
         <!-- Mount Control -->
         <section class="mount-control">
-            <h3>PMC8 Mount Control</h3>
+            <h3>PMC8 Mount Control (Deprecated)</h3>
 
             <!-- RA and DEC Display -->
             <div class="mount-coordinates">
@@ -99,7 +99,7 @@
             <p>Last Checked: <span id ="last_checked"> X/XX/XX 00:00</span></p>
             <div class="mount-coordinates">
                 <p>Condition: <span id="condition">xxxxx</span></p>
-                <p>Temperature: <span id="temperature">XX.X</span> °C | Wind: <span id="wind">10</span> km/h</p>
+                <p>Temperature: <span id="temperature">XX.X</span> °C </p>
             </div>
         </section>
 
@@ -118,15 +118,16 @@
         <section class="dome-cam">
             <h3>Dome Camera</h3>
             <!-- Image element to display the live stream -->
-            <img id="dome-video" src="http://192.168.1.183:8081/0/stream" alt="Dome Camera Feed" width="600" height="600">
+            <img id="dome-video" src="http://192.168.1.160:8081/0/stream" alt="Dome Camera Feed" width="600" height="600">
         </section>
 
         
         <!-- Science Camera -->
         <section class="science-cam">
             <h3>Science Camera</h3>
-            <!-- <iframe src="http://192.168.1.183:8081/0/stream" width="600" height="600" class="iframe-border"></iframe> -->
+            <iframe src="http://192.168.1.160:6080/vnc.html" width="700" height="700" class="iframe-border"></iframe>
         </section>
+
 
         <!-- File Status -->
         <section class="file-status">

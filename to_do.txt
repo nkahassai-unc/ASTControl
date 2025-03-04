@@ -1,5 +1,14 @@
 Current ASTControl To Do (2.7.1):
 
+UNC Install Priorities:
+    - Network setup (DHCP, VNC)
+    - Dome Camera ability (Motion)
+    - File Transfer Protocol (Samba)
+    - Arduino Remote Control (Python)
+    - Dome Motor Mechanic
+    - Scripts Later Remotely
+
+
 Next test: Run control panel. Local testing.
     - test indigo server connection (Reconnect)
 

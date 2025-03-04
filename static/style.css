@@ -6,7 +6,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #d4d2d2;
+    background-color: #dadada;
     min-height: 100vh;
 }
 
@@ -18,6 +18,7 @@ body {
     width: 90%;
     max-width: 1200px;
 }
+
 
 /* Banner */
 .banner {
@@ -37,7 +38,7 @@ body {
 .server-control {
     grid-column: 1;
     grid-row: 2;
-    background-color: #f4cccc;
+    background-color: #fcb5b5;
     padding: 10px;
     border-radius: 5px;
 }
@@ -46,7 +47,7 @@ body {
 .calculations {
     grid-column: 1;
     grid-row: 3;
-    background-color: #fff2cc;
+    background-color: #ffe294;
     padding: 10px;
     border-radius: 5px;
 }
@@ -55,7 +56,7 @@ body {
 .mount-control {
     grid-column: 1;
     grid-row: 4 / span 2;
-    background-color: #c9daf8;
+    background-color: #ddcfff;
     padding: 15px;
     border-radius: 5px;
     text-align: center;
@@ -137,7 +138,7 @@ body {
 .weather {
     grid-column: 2;
     grid-row: 2;
-    background-color: #d9d2e9;
+    background-color: #afffbf;
     padding: 10px;
     border-radius: 5px;
 }
@@ -147,7 +148,7 @@ body {
 .dome-etalon-control {
     grid-column: 2;
     grid-row: 3;
-    background-color: #fff2cc;
+    background-color: #b1e9ff;
     padding: 10px;
     border-radius: 5px;
 }
@@ -156,7 +157,7 @@ body {
 .nstep-control {
     grid-column: 2;
     grid-row: 4;
-    background-color: #c9daf8;
+    background-color: #b1e9ff;
     padding: 15px;
     border-radius: 5px;
     text-align: left;
@@ -217,7 +218,7 @@ body {
 .file-status {
     grid-column: 2;
     grid-row: 5;
-    background-color: #d9d2e9;
+    background-color: #ddcfff;
     padding: 10px;
     border-radius: 5px;
 }
@@ -226,7 +227,7 @@ body {
 .science-cam {
     grid-column: 3;
     grid-row: 2 / span 2;
-    background-color: #d9ead3;
+    background-color: #b4b4b4;
     padding: 10px;
     border-radius: 5px;
 }
@@ -235,13 +236,13 @@ body {
 .dome-cam {
     grid-column: 3;
     grid-row: 4 / span 2;
-    background-color: #d9ead3;
+    background-color: #b4b4b4;
     padding: 10px;
     border-radius: 5px;
 }
 
 .iframe-border {
-    border: 3px solid #333; /* Dark border color */
+    border: 3px solid #575757; /* Dark border color */
     border-radius: 2px;     /* Rounded corners */
     max-width: 600px;       /* Limit width to 600px */
     height: 600px;          /* Set a fixed height *//

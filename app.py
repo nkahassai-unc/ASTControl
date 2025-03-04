@@ -61,7 +61,7 @@ def solar_thread():
             print(f"Error in solar monitor thread: {e}")
 
 # Raspberry Pi Details
-RASPBERRY_PI_IP = "192.168.1.183"
+RASPBERRY_PI_IP = "192.168.1.160"
 USERNAME = "pi"
 PASSWORD = "raspberry"
 
