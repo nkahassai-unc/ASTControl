@@ -5,7 +5,7 @@ UNC Install Priorities:
     - Dome Camera ability (Motion)
     - File Transfer Protocol (Samba)
     - Arduino Remote Control (Python)
-    - Dome Motor Mechanic
+    - Dome Motor Mechanical
     - Scripts Later Remotely
 
 
