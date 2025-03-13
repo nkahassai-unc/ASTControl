@@ -1,0 +1,64 @@
+#include <Servo.h>
+
+// Define servo objects
+Servo etalon1;
+Servo etalon2;
+Servo domeMotor;
+
+// Servo pin connections
+const int ETALON1_PIN = 9;
+const int ETALON2_PIN = 10;
+const int DOME_PIN = 11;
+
+// Movement limits (adjust as needed)
+const int ETALON_MIN = 0;
+const int ETALON_MAX = 90;
+const int DOME_MIN = 0;
+const int DOME_MAX = 180;
+
+void setup() {
+    Serial.begin(9600); // Must match PC-side communication
+    etalon1.attach(ETALON1_PIN);
+    etalon2.attach(ETALON2_PIN);
+    domeMotor.attach(DOME_PIN);
+}
+
+void moveServoSmooth(Servo &servo, int targetPos) {
+    int currentPos = servo.read();
+    int step = (targetPos > currentPos) ? 1 : -1;
+
+    while (currentPos != targetPos) {
+        currentPos += step;
+        servo.write(currentPos);
+        delay(10); // Adjust speed if needed
+    }
+}
+
+void loop() {
+    if (Serial.available() > 0) {
+        String command = Serial.readStringUntil('\n');  // Read incoming data
+        command.trim();  // Remove whitespace
+        
+        // Ignore empty messages
+        if (command.length() == 0) return;
+
+        int positions[3] = {-1, -1, -1};  // Default to -1 (ignore)
+        int index = 0;
+        char *ptr = strtok((char*)command.c_str(), ",");
+
+        while (ptr != NULL && index < 3) {
+            if (String(ptr) != "X") { // "X" means ignore this servo
+                positions[index] = atoi(ptr);
+            }
+            index++;
+            ptr = strtok(NULL, ",");
+        }
+
+        // Move servos independently if they received valid values
+        if (positions[0] != -1) moveServoSmooth(etalon1, constrain(positions[0], ETALON_MIN, ETALON_MAX));
+        if (positions[1] != -1) moveServoSmooth(etalon2, constrain(positions[1], ETALON_MIN, ETALON_MAX));
+        if (positions[2] != -1) moveServoSmooth(domeMotor, constrain(positions[2], DOME_MIN, DOME_MAX));
+
+        Serial.println("Servos updated");
+    }
+}
