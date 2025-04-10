@@ -1,44 +1,35 @@
 // JS for AST Control Panel
-//////////////////////////////
 
-// INDIGO Server Control JS
-
-// Append log messages to the log output
 function appendLog(message) {
     const logDiv = document.querySelector(".log-output");
     const newLog = document.createElement("p");
     newLog.textContent = message;
     logDiv.appendChild(newLog);
-    logDiv.scrollTop = logDiv.scrollHeight; // Auto-scroll to the latest log
+    logDiv.scrollTop = logDiv.scrollHeight;
 }
 
-// Event listener for starting the INDIGO server
+function updateIPStatus(ip) {
+    document.getElementById("server-ip").textContent = ip || "Disconnected";
+}
+
 document.getElementById("start-server").addEventListener("click", () => {
     fetch("/start_server", { method: "POST" })
-        .then(response => response.json())
-        .then(data => appendLog(data.message))
-        .catch(error => {
-            console.error("Error starting server:", error);
-            appendLog("Error starting server.");
+        .then(res => res.json())
+        .then(data => {
+            appendLog(data.message);
+            updateIPStatus(data.ip_status);
         });
 });
 
-// Event listener for killing the INDIGO server
 document.getElementById("kill-server").addEventListener("click", () => {
     fetch("/kill_server", { method: "POST" })
-        .then(response => response.json())
-        .then(data => appendLog(data.message))
-        .catch(error => {
-            console.error("Error killing server:", error);
-            appendLog("Error killing server.");
+        .then(res => res.json())
+        .then(data => {
+            appendLog(data.message);
+            updateIPStatus(data.ip_status);
         });
 });
 
-//////////////////////////////
-
-// Weather Monitor JS
-
-// Function to update the weather data on the webpage
 function updateWeather(data) {
     document.getElementById("condition").textContent = data.sky_conditions || "Unknown";
     document.getElementById("temperature").textContent = data.temperature || "--";
@@ -46,104 +37,99 @@ function updateWeather(data) {
     document.getElementById("last_checked").textContent = data.last_checked || "N/A";
 }
 
-// Fetch weather data from the backend
 function fetchWeather() {
-    fetch('/refresh_weather')
-        .then(response => response.json())
-        .then(data => {
-            console.log("Weather data:", data); // Optional logging for debugging
-            updateWeather(data); // Update the webpage with new data
-        })
-        .catch(error => console.error("Error fetching weather data:", error));
+    fetch("/refresh_weather")
+        .then(res => res.json())
+        .then(data => updateWeather(data));
 }
 
-//////////////////////////////
-
-// Solar Calculations JS
-
-// Update solar data on the webpage
 function updateSolar(data) {
-    document.getElementById("solar_alt").textContent = data.solar_alt || "--";
-    document.getElementById("solar_az").textContent = data.solar_az || "--";
-    document.getElementById("sunrise").textContent = data.sunrise || "--";
-    document.getElementById("sunset").textContent = data.sunset || "--";
-    document.getElementById("solar_noon").textContent = data.solar_noon || "--";
-    document.getElementById("sun_time").textContent = data.sun_time || "--";
+    document.getElementById("solar_alt").textContent = data.solar_alt;
+    document.getElementById("solar_az").textContent = data.solar_az;
+    document.getElementById("sunrise").textContent = data.sunrise;
+    document.getElementById("sunset").textContent = data.sunset;
+    document.getElementById("solar_noon").textContent = data.solar_noon;
+    document.getElementById("sun_time").textContent = data.sun_time;
 }
 
-// Fetch solar data from the backend
 function fetchSolarData() {
-    fetch('/refresh_solar')
-        .then(response => response.json())
-        .then(data => {
-            console.log("Solar data:", data); // Optional logging for debugging
-            updateSolar(data); // Update the webpage with new data
-        })
-        .catch(error => console.error("Error fetching solar data:", error));
+    fetch("/refresh_solar")
+        .then(res => res.json())
+        .then(data => updateSolar(data));
 }
 
-//////////////////////////////
-
-// Real-Time Updates via Socket.IO
+// SOCKETS
 const socket = io();
+socket.on("server_log", appendLog);
+socket.on("weather_update", updateWeather);
+socket.on("solar_update", updateSolar);
 
-// WebSocket for real-time log streaming
-socket.on("server_log", (message) => {
-    appendLog(message);
-});
-
-// Listen for real-time weather updates
-socket.on("weather_update", (data) => {
-    console.log("Real-time weather update:", data);
-    updateWeather(data);
-});
-
-// Listen for real-time solar updates
-socket.on("solar_update", (data) => {
-    console.log("Real-time solar update:", data);
-    updateSolar(data);
-});
-
-
-//////////////////////////////
-
-// Placeholder functions for other features
-function slewMount(direction) {
-    console.log(`Slewing mount ${direction}`);
-    // TODO: Add implementation to call backend and update mount movement
+// ==== SERVO CONTROL ==== 
+function sendServoCommand(command) {
+    fetch("/servo_control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command })
+    }).then(res => res.json())
+      .then(data => console.log("Command sent:", data))
+      .catch(err => console.error("Servo command error:", err));
 }
 
-function controlDome(action) {
-    console.log(`Dome action: ${action}`);
-    // TODO: Add implementation to call backend for dome control
-}
+// Dome Control
+document.getElementById("open-dome").addEventListener("click", () => {
+    sendServoCommand("DOME_OPEN");
+    document.getElementById("dome-position").textContent = "Open";
+});
 
-function controlEtalon(etalonId, action) {
-    console.log(`Etalon ${etalonId} action: ${action}`);
-    // TODO: Add implementation to call backend for etalon control
-}
+document.getElementById("close-dome").addEventListener("click", () => {
+    sendServoCommand("DOME_CLOSE");
+    document.getElementById("dome-position").textContent = "Closed";
+});
 
-// Event listeners for mount slewing
-document.getElementById("slew-north").addEventListener("click", () => slewMount("north"));
-document.getElementById("slew-east").addEventListener("click", () => slewMount("east"));
-document.getElementById("slew-west").addEventListener("click", () => slewMount("west"));
-document.getElementById("slew-south").addEventListener("click", () => slewMount("south"));
-document.getElementById("stop-mount").addEventListener("click", () => slewMount("stop"));
+// Link input ↔ slider for Etalon 1
+const etalon1Input = document.getElementById("etalon1-input");
+const etalon1Slider = document.getElementById("etalon1-slider");
 
-// Event listeners for dome control
-document.getElementById("open-dome").addEventListener("click", () => controlDome("open"));
-document.getElementById("close-dome").addEventListener("click", () => controlDome("close"));
+etalon1Slider.addEventListener("input", () => {
+  etalon1Input.value = etalon1Slider.value;
+});
+etalon1Input.addEventListener("input", () => {
+  etalon1Slider.value = etalon1Input.value;
+});
+["mouseup", "touchend"].forEach(evt => {
+  etalon1Slider.addEventListener(evt, () => {
+    sendServoCommand(`ETALON1:${etalon1Slider.value}`);
+  });
+});
 
-// Event listeners for etalon control
-document.getElementById("etalon1-inward").addEventListener("click", () => controlEtalon(1, "inward"));
-document.getElementById("etalon1-outward").addEventListener("click", () => controlEtalon(1, "outward"));
-document.getElementById("etalon2-inward").addEventListener("click", () => controlEtalon(2, "inward"));
-document.getElementById("etalon2-outward").addEventListener("click", () => controlEtalon(2, "outward"));
+// Link input ↔ slider for Etalon 2
+const etalon2Input = document.getElementById("etalon2-input");
+const etalon2Slider = document.getElementById("etalon2-slider");
 
-//////////////////////////////
+etalon2Slider.addEventListener("input", () => {
+  etalon2Input.value = etalon2Slider.value;
+});
+etalon2Input.addEventListener("input", () => {
+  etalon2Slider.value = etalon2Input.value;
+});
+["mouseup", "touchend"].forEach(evt => {
+  etalon2Slider.addEventListener(evt, () => {
+    sendServoCommand(`ETALON2:${etalon2Slider.value}`);
+  });
+});
 
-// Initial Data Fetch on Page Load
+// nstep
+const nstepSlider = document.getElementById('nstep-rate');
+const nstepLabel = document.getElementById('nstep-rate-value');
+
+nstepSlider.addEventListener('input', () => {
+  nstepLabel.textContent = nstepSlider.value;
+});
+
+
+
+// Initialize data on page load
 window.addEventListener("load", () => {
-    fetchWeather(); // Fetch initial weather data
-    fetchSolarData(); // Fetch initial solar data
+    fetchWeather();
+    fetchSolarData();
 });
