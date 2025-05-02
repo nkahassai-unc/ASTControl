@@ -1,11 +1,20 @@
-Current ASTControl To Do (2.7.1):
+Current ASTControl 3.0 To Do (3.0):
+
+3.0 To Do:
+    - Weather & Solar consolidated
+    - Servo control integration
+    
+    Next:
+    - VNC firecapture
+    - File transfer monitoring
+
 
 UNC Install Priorities:
     - Network setup (DHCP, VNC)
     - Dome Camera ability (Motion)
     - File Transfer Protocol (Samba)
     - Arduino Remote Control (Python)
-    - Dome Motor Mechanical
+    - Dome Motor (Mechanical)
     - Scripts Later Remotely
 
 
