@@ -1,5 +1,19 @@
-Current ASTControl 3.0 To Do (3.0):
+Current ASTControl 4.0 To Do (4.0):
 
+- Finalize mount scripts (startup_, track_, shutdown_)
+- Add scripting agent + RA/DEC live to GUI
+- Weather → dome auto-close + warning display
+- Arduino dome/etalon: bind control + pos readout
+- UI: dome + etalon sliders/buttons + state text
+- FireCapture: test SSH run, add 1fps preview, cleanup loop
+- nSTEP: wire buttons, add feedback (INDIGO or fallback)
+- Dome cam + science cam feeds live
+- File handler: reconnect, show file status, prep AS4 pipe
+- Polish layout: no shifting, static log, all feedback live
+- Remote: VNC/SSH check, prep systemd autostart
+
+
+*-*-*-*-*-*-*-
 3.0 To Do:
     - Weather & Solar consolidated
     - Servo control integration
@@ -8,7 +22,7 @@ Current ASTControl 3.0 To Do (3.0):
     - VNC firecapture
     - File transfer monitoring
 
-
+-----------------------
 UNC Install Priorities:
     - Network setup (DHCP, VNC)
     - Dome Camera ability (Motion)
