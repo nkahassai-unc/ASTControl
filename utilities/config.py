@@ -1,26 +1,26 @@
-# config.py
+# Confguration Settings
 
 # Remote Device Info
 RASPBERRY_PI_IP = "192.168.1.160"
 SSH_USERNAME = "pi"
 SSH_PASSWORD = "raspberry"
 
-# API Keys
-WEATHER_API_KEY = "10b2f1d4a200b534bb2d4bf69bddcace"
-CITY = "Chapel Hill"
-
-# DEFUALT DATA
+# DEFAULT DATA
 DEFAULT_WEATHER_DATA = {
     "temperature": "--",
     "sky_conditions": "Unknown",
     "wind_speed": "--",
+    "precip_chance": "--",
     "last_checked": None
 }
 
 DEFAULT_SOLAR_DATA = {
-    "solar_alt": "--", "solar_az": "--", 
-    "sunrise": "--", "sunset": "--", 
-    "solar_noon": "--", "sun_time": None
+    "solar_alt": "--",
+    "solar_az": "--",
+    "sunrise": "--",
+    "sunset": "--",
+    "solar_noon": "--",
+    "sun_time": "--"
 }
 
 # Arduino Shared State
@@ -29,13 +29,6 @@ ARDUINO_STATE = {
     "etalon1": 90,
     "etalon2": 90,
     "last_updated": None
-}
-
-# Device Names
-INDIGO_DEVICES = {
-    "focuser": "Focuser #1",
-    "etalon1": "Etalon #1",
-    "etalon2": "Etalon #2",
 }
 
 # FireCapture Paths

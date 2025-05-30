@@ -1,135 +1,143 @@
-// JS for AST Control Panel
+// === SOCKET SETUP ===
+const socket = io();
 
-function appendLog(message) {
-    const logDiv = document.querySelector(".log-output");
-    const newLog = document.createElement("p");
-    newLog.textContent = message;
-    logDiv.appendChild(newLog);
-    logDiv.scrollTop = logDiv.scrollHeight;
-}
-
-function updateIPStatus(ip) {
-    document.getElementById("server-ip").textContent = ip || "Disconnected";
-}
-
-document.getElementById("start-server").addEventListener("click", () => {
-    fetch("/start_server", { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-            appendLog(data.message);
-            updateIPStatus(data.ip_status);
-        });
+// === SECTION: UI ELEMENTS ===
+socket.on("connect", () => {
+  console.log("[SocketIO] Connected. Requesting current data...");
+  socket.emit("get_weather");
+  socket.emit("check_indigo_status");
+  socket.emit("get_mount_coordinates"); 
 });
 
-document.getElementById("kill-server").addEventListener("click", () => {
-    fetch("/kill_server", { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-            appendLog(data.message);
-            updateIPStatus(data.ip_status);
-        });
+// === SECTION: INDIGO SERVER CONTROL ===
+
+const startBtn     = document.getElementById("start-server");
+const stopBtn      = document.getElementById("kill-server");
+const logBox       = document.getElementById("server-log");
+const statusLight  = document.getElementById("indigo-status");
+const ipText       = document.getElementById("server-ip");
+
+// Emit start/stop commands
+startBtn.addEventListener("click", () => {
+  logBox.innerHTML += "<div>[CLIENT] Starting INDIGO server...</div>";
+  socket.emit("start_indigo");
 });
+
+stopBtn.addEventListener("click", () => {
+  logBox.innerHTML += "<div>[CLIENT] Stopping INDIGO server...</div>";
+  socket.emit("stop_indigo");
+});
+
+// Handle live INDIGO server log streaming
+const MAX_LOG_LINES = 200;
+
+socket.on("server_log", (msg) => {
+  const line = document.createElement("div");
+  line.textContent = msg;
+  logBox.appendChild(line);
+
+  // Limit lines
+  while (logBox.children.length > MAX_LOG_LINES) {
+    logBox.removeChild(logBox.firstChild);
+  }
+
+  logBox.scrollTop = logBox.scrollHeight;
+});
+
+// Poll for server status every 5 seconds
+setInterval(() => {
+  socket.emit("check_indigo_status");
+}, 5000);
+
+// Update status light and IP display
+socket.on("indigo_status", (data) => {
+  const statusText = document.getElementById("indigo-status");
+  const ipText = document.getElementById("server-ip");
+
+  if (data.running) {
+    statusText.textContent = "● Online";
+    statusText.classList.remove("text-red-700");
+    statusText.classList.add("text-green-700");
+    ipText.textContent = "192.168.1.160 :7624";  // or dynamically from config
+  } else {
+    statusText.textContent = "● Offline";
+    statusText.classList.remove("text-green-700");
+    statusText.classList.add("text-red-700");
+    ipText.textContent = "-";
+  }
+});
+
+// === SECTION: WEATHER DATA ===
+
+socket.on("update_weather", updateWeather);
 
 function updateWeather(data) {
-    document.getElementById("condition").textContent = data.sky_conditions || "Unknown";
-    document.getElementById("temperature").textContent = data.temperature || "--";
-    document.getElementById("wind").textContent = data.wind_speed || "--";
-    document.getElementById("last_checked").textContent = data.last_checked || "N/A";
+  document.getElementById("condition").textContent    = data.sky_conditions ?? "--";
+  document.getElementById("temperature").textContent  = data.temperature !== "--" ? `${data.temperature} °F` : "--";
+  document.getElementById("wind").textContent         = data.wind_speed !== "--" ? `${data.wind_speed} mph` : "--";
+  document.getElementById("precip").textContent       = data.precip_chance !== "--" ? `${data.precip_chance}%` : "--";
+  document.getElementById("last_checked").textContent = data.last_checked ?? "--";
 }
 
-function fetchWeather() {
-    fetch("/refresh_weather")
-        .then(res => res.json())
-        .then(data => updateWeather(data));
-}
+// === SECTION: SOLAR POSITION DATA ===
 
-function updateSolar(data) {
-    document.getElementById("solar_alt").textContent = data.solar_alt;
-    document.getElementById("solar_az").textContent = data.solar_az;
-    document.getElementById("sunrise").textContent = data.sunrise;
-    document.getElementById("sunset").textContent = data.sunset;
-    document.getElementById("solar_noon").textContent = data.solar_noon;
-    document.getElementById("sun_time").textContent = data.sun_time;
-}
-
-function fetchSolarData() {
-    fetch("/refresh_solar")
-        .then(res => res.json())
-        .then(data => updateSolar(data));
-}
-
-// SOCKETS
-const socket = io();
-socket.on("server_log", appendLog);
-socket.on("weather_update", updateWeather);
 socket.on("solar_update", updateSolar);
 
-// ==== SERVO CONTROL ==== 
-function sendServoCommand(command) {
-    fetch("/servo_control", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command })
-    }).then(res => res.json())
-      .then(data => console.log("Command sent:", data))
-      .catch(err => console.error("Servo command error:", err));
+function updateSolar(data) {
+  document.getElementById("solar_alt").textContent   = data.solar_alt ?? "--";
+  document.getElementById("solar_az").textContent    = data.solar_az ?? "--";
+  document.getElementById("sunrise").textContent     = data.sunrise ?? "--";
+  document.getElementById("sunset").textContent      = data.sunset ?? "--";
+  document.getElementById("solar_noon").textContent  = data.solar_noon ?? "--";
+  document.getElementById("sun_time").textContent    = data.sun_time ?? "--";
 }
 
-// Dome Control
-document.getElementById("open-dome").addEventListener("click", () => {
-    sendServoCommand("DOME_OPEN");
-    document.getElementById("dome-position").textContent = "Open";
-});
+// === SECTION: MOUNT CONTROL ===
 
-document.getElementById("close-dome").addEventListener("click", () => {
-    sendServoCommand("DOME_CLOSE");
-    document.getElementById("dome-position").textContent = "Closed";
-});
+const trackBtn       = document.getElementById("track-sun");
+const parkBtn        = document.getElementById("park-mount");
+const mountStatus    = document.getElementById("mount-status");
+const slewRateSelect = document.getElementById("slew-rate");
+const slewRate       = () => slewRateSelect.value;
 
-// Link input ↔ slider for Etalon 1
-const etalon1Input = document.getElementById("etalon1-input");
-const etalon1Slider = document.getElementById("etalon1-slider");
+const directions = {
+  "slew-north": "north",
+  "slew-south": "south",
+  "slew-east":  "east",
+  "slew-west":  "west"
+};
 
-etalon1Slider.addEventListener("input", () => {
-  etalon1Input.value = etalon1Slider.value;
-});
-etalon1Input.addEventListener("input", () => {
-  etalon1Slider.value = etalon1Input.value;
-});
-["mouseup", "touchend"].forEach(evt => {
-  etalon1Slider.addEventListener(evt, () => {
-    sendServoCommand(`ETALON1:${etalon1Slider.value}`);
+// Wire DPAD buttons for slew
+Object.keys(directions).forEach((btnId) => {
+  document.getElementById(btnId).addEventListener("click", () => {
+    socket.emit("slew_mount", {
+      direction: directions[btnId],
+      rate: slewRate()
+    });
   });
 });
 
-// Link input ↔ slider for Etalon 2
-const etalon2Input = document.getElementById("etalon2-input");
-const etalon2Slider = document.getElementById("etalon2-slider");
-
-etalon2Slider.addEventListener("input", () => {
-  etalon2Input.value = etalon2Slider.value;
-});
-etalon2Input.addEventListener("input", () => {
-  etalon2Slider.value = etalon2Input.value;
-});
-["mouseup", "touchend"].forEach(evt => {
-  etalon2Slider.addEventListener(evt, () => {
-    sendServoCommand(`ETALON2:${etalon2Slider.value}`);
-  });
+// Stop button
+document.getElementById("stop-mount").addEventListener("click", () => {
+  socket.emit("stop_mount");
 });
 
-// nstep
-const nstepSlider = document.getElementById('nstep-rate');
-const nstepLabel = document.getElementById('nstep-rate-value');
-
-nstepSlider.addEventListener('input', () => {
-  nstepLabel.textContent = nstepSlider.value;
+// Track Sun
+trackBtn.addEventListener("click", () => {
+  socket.emit("track_sun");
 });
 
+// Park Mount
+parkBtn.addEventListener("click", () => {
+  socket.emit("park_mount");
+});
 
+// Mount status and coordinates
+socket.on("mount_status", (status) => {
+  mountStatus.textContent = status;
+});
 
-// Initialize data on page load
-window.addEventListener("load", () => {
-    fetchWeather();
-    fetchSolarData();
+socket.on("mount_coordinates", (coords) => {
+  document.getElementById("ra-placeholder").textContent  = coords.ra ?? "--";
+  document.getElementById("dec-placeholder").textContent = coords.dec ?? "--";
 });

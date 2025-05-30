@@ -1,17 +1,23 @@
-# network_utils.py
-# Low-level SSH and serial command execution for remote devices
+# Network Utilities
+# Suite of network utilities for remote SSH control and port checking
 
 import paramiko
+import socket
+import time
 
-def get_ssh_client(ip, username, password):
-    """Establish and return an active SSH connection to the remote device."""
+def get_ssh_client(ip, username, password, retries=2):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(ip, username=username, password=password)
-    return client
+    for attempt in range(retries):
+        try:
+            client.connect(ip, username=username, password=password, timeout=5)
+            return client
+        except Exception as e:
+            if attempt == retries - 1:
+                raise e
+            time.sleep(1)
 
 def run_ssh_command(client, command):
-    """Run a one-off command using an active SSH client."""
     stdin, stdout, stderr = client.exec_command(command)
     return {
         "stdout": stdout.read().decode().strip(),
@@ -20,30 +26,39 @@ def run_ssh_command(client, command):
     }
 
 def stream_ssh_output(client, command, callback):
-    """Stream stdout and stderr line-by-line from a remote process via SSH."""
+    """Stream stdout/stderr lines via callback from a long-running command."""
     channel = client.get_transport().open_session()
     channel.exec_command(command)
 
     while True:
         if channel.recv_ready():
-            output = channel.recv(1024).decode().strip()
-            if output:
-                callback(output)
+            for line in channel.recv(1024).decode().splitlines():
+                callback(line.strip())
         if channel.recv_stderr_ready():
-            error = channel.recv_stderr(1024).decode().strip()
-            if error:
-                callback(f"ERR: {error}")
+            for line in channel.recv_stderr(1024).decode().splitlines():
+                callback(f"ERR: {line.strip()}")
         if channel.exit_status_ready():
             break
 
-def run_python_serial_command(client, serial_command, port="/dev/ttyACM0"):
-    """Send a command to Arduino over serial via remote Python script."""
-    escaped = serial_command.replace('"', '\\"')
-    py = (
-        f'import serial; '
-        f's=serial.Serial("{port}",9600,timeout=2); '
-        f's.write(b"{escaped}\\n"); '
-        f'print(s.readline().decode().strip()); '
-        f's.close()'
-    )
-    return run_ssh_command(client, f'python3 -c "{py}"')
+def check_remote_port(ip, port, timeout=2):
+    """Check if a remote port is open (e.g., INDIGO on 7624)."""
+    try:
+        with socket.create_connection((ip, port), timeout=timeout):
+            return True
+    except:
+        return False
+    
+def run_ssh_command_with_log(client, command, log_callback):
+    stdin, stdout, stderr = client.exec_command(command)
+
+    seen = set()
+    for line in stdout:
+        line = line.strip()
+        if line and line not in seen:
+            log_callback(f"[SSH] {line}")
+            seen.add(line)
+
+    for line in stderr:
+        log_callback(f"[SSH:ERR] {line.strip()}")
+
+    return stdout.channel.recv_exit_status()
