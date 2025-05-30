@@ -1,70 +1,99 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template
 from flask_socketio import SocketIO
 
-from modules.weather_module import WeatherMonitor
+from modules.weather_module import Weatherman
 from modules.solar_module import SolarCalculator
 from modules.server_module import IndigoServer
 from modules import arduino_module
 from utilities.config import RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD
+from modules import mount_module
 
 # === App Init ===
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 # === Module Instances ===
-weather_monitor = WeatherMonitor()
+weatherman = Weatherman()
 solar_calculator = SolarCalculator()
 indigo = IndigoServer(RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD)
+mount_module.set_socketio(socketio)
+mount = mount_module.MountController(RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD)
 
-# === ROUTES ===
+# === Routes ===
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
-@app.route('/start_server', methods=['POST'])
-def start_server():
+# === WebSocket Handlers ===
+
+# Weather Handler
+@socketio.on('get_weather')
+def send_weather_now():
+    socketio.emit("update_weather", weatherman.get_data())
+
+# INDIGO Server Handlers
+@socketio.on('start_indigo')
+def handle_start_indigo():
     indigo.start(lambda msg: socketio.emit("server_log", msg))
-    return jsonify({"status": "started", "ip_status": RASPBERRY_PI_IP})
 
-@app.route('/kill_server', methods=['POST'])
-def kill_server():
+@socketio.on('stop_indigo')
+def handle_stop_indigo():
     result = indigo.stop()
-    return jsonify({
-        "status": "stopped",
-        "message": result.get("stdout", ""),
-        "ip_status": RASPBERRY_PI_IP
-    })
+    socketio.emit("server_log", result.get("stdout", ""))
 
-@app.route('/refresh_weather')
-def refresh_weather():
-    return jsonify(weather_monitor.latest_data)
+@socketio.on('check_indigo_status')
+def handle_check_indigo_status():
+    is_up = indigo.check_status()
+    socketio.emit("indigo_status", {"running": is_up})
 
-@app.route('/refresh_solar')
-def refresh_solar():
-    return jsonify(solar_calculator.get_data())
+# Mount Handlers
+@socketio.on('mount_command')
+def handle_mount_command(data):
+    cli_args = data.get("args", "")
+    if cli_args:
+        mount.run_indigo_prop_command(cli_args, lambda msg: socketio.emit("server_log", msg))
 
-@app.route('/refresh_arduino')
-def refresh_arduino():
-    return jsonify(arduino_module.get_state())
+@socketio.on("slew_mount")
+def handle_slew_mount(data):
+    mount.slew(data["direction"], data.get("rate", "solar"))
 
-@app.route('/set_dome', methods=['POST'])
-def set_dome():
-    data = request.get_json()
-    state_cmd = data.get("state")
-    success = arduino_module.set_dome(state_cmd)
-    return jsonify({"success": success, "state": arduino_module.get_dome()})
+@socketio.on("stop_mount")
+def handle_stop_mount():
+    mount.stop()
 
-@app.route('/set_etalon', methods=['POST'])
-def set_etalon():
-    data = request.get_json()
+@socketio.on("track_sun")
+def handle_track_sun():
+    mount.track_sun()
+
+@socketio.on("park_mount")
+def handle_park_mount():
+    mount.park()
+
+@socketio.on("get_mount_coordinates")
+def handle_get_mount_coordinates():
+    coords = mount.get_coordinates()
+    socketio.emit("mount_coordinates", coords)
+
+# Arduino Control
+@socketio.on('set_dome')
+def handle_set_dome(data):
+    state = data.get("state")
+    arduino_module.set_dome(state)
+    socketio.emit("dome_state", arduino_module.get_dome())
+
+@socketio.on('set_etalon')
+def handle_set_etalon(data):
     index = int(data.get("index", 0))
     value = int(data.get("value", 90))
-    success = arduino_module.set_etalon(index, value)
-    return jsonify({"success": success, "value": arduino_module.get_etalon(index)})
+    arduino_module.set_etalon(index, value)
+    socketio.emit("etalon_position", {
+        "index": index,
+        "value": arduino_module.get_etalon(index)
+    })
 
-# === Start Flask App ===
+# === Start App ===
 if __name__ == '__main__':
-    weather_monitor.start_monitor(socketio)
-    solar_calculator.start_monitor(socketio)
-    #arduino_module.start_monitor()
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+    weatherman.start_monitor(socketio, interval=600)
+    solar_calculator.start_monitor(socketio, interval=5)
+    mount._start_coord_monitor()  # Start continuous coordinate updates
+    socketio.run(app, host='0.0.0.0', port=5001)

@@ -1,60 +1,59 @@
-# Weather Module
-# Description: Module to monitor weather conditions using OpenWeatherMap API.
-
 import requests
-import threading
 import time
 from datetime import datetime
-from utilities.config import WEATHER_API_KEY, DEFAULT_WEATHER_DATA
 
-class WeatherMonitor:
+class Weatherman:
     def __init__(self, latitude=35.9132, longitude=-79.0558):
-        self.api_url = 'http://api.openweathermap.org/data/2.5/weather'
-        self.api_key = WEATHER_API_KEY
         self.latitude = latitude
         self.longitude = longitude
-        self._data = DEFAULT_WEATHER_DATA.copy()
+        self.api_url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={self.latitude}&longitude={self.longitude}"
+            f"&current_weather=true"
+            f"&hourly=precipitation_probability"
+            f"&forecast_days=1"
+            f"&timezone=America/New_York"
+        )
         self.weather_data = {
             'temperature': "--",
             'wind_speed': "--",
-            'rain_chance': "--",
             'sky_conditions': "unknown",
+            'precip_chance': "--",
             'last_checked': "--"
         }
 
-    @property
-    def latest_data(self):
-        return self._data
-
     def check_weather(self):
         try:
-            res = requests.get(self.api_url, params={
-                'lat': self.latitude,
-                'lon': self.longitude,
-                'appid': self.api_key,
-                'units': 'metric'
-            }, timeout=5)
+            res = requests.get(self.api_url, timeout=5)
             res.raise_for_status()
-            data = res.json()
+            body = res.json()
 
-            weather = [w['main'].lower() for w in data.get('weather', [])]
+            current = body.get("current_weather", {})
+            hourly = body.get("hourly", {})
+            precip_list = hourly.get("precipitation_probability", [])
+            precip_chance = precip_list[0] if precip_list else "--"
+
             self.weather_data = {
-                'temperature': round(data['main'].get('temp', 0), 2),
-                'wind_speed': data['wind'].get('speed', "--"),
-                'rain_chance': data.get('rain', {}).get('1h', 0),
-                'sky_conditions': 'clear' if 'clear' in weather else 'not clear',
+                'temperature': round(current.get('temperature', 0), 2),
+                'wind_speed': current.get('windspeed', "--"),
+                'sky_conditions': "clear" if current.get('weathercode', 0) in [0, 1] else "cloudy",
+                'precip_chance': round(precip_chance) if isinstance(precip_chance, (int, float)) else "--",
                 'last_checked': datetime.now().strftime('%m-%d %H:%M:%S')
             }
+
         except Exception as e:
-            print(f"[WeatherMonitor] Error fetching weather: {e}")
+            print(f"[Weatherman] Error fetching weather: {e}")
 
     def get_data(self):
         return self.weather_data
 
-    def start_monitor(self, socketio, interval=1200):
+    def start_monitor(self, socketio, interval=600):
         def loop():
+            self.check_weather()
+            socketio.emit("update_weather", self.weather_data)
             while True:
-                self.check_weather()
-                socketio.emit("weather_update", self.weather_data)
                 time.sleep(interval)
-        threading.Thread(target=loop, daemon=True).start()
+                self.check_weather()
+                socketio.emit("update_weather", self.weather_data)
+
+        socketio.start_background_task(loop)
