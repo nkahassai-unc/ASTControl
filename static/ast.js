@@ -29,7 +29,7 @@ stopBtn.addEventListener("click", () => {
 });
 
 // Handle live INDIGO server log streaming
-const MAX_LOG_LINES = 200;
+const MAX_LOG_LINES = 100;
 
 socket.on("server_log", (msg) => {
   const line = document.createElement("div");
@@ -73,7 +73,7 @@ socket.on("update_weather", updateWeather);
 
 function updateWeather(data) {
   document.getElementById("condition").textContent    = data.sky_conditions ?? "--";
-  document.getElementById("temperature").textContent  = data.temperature !== "--" ? `${data.temperature} °F` : "--";
+  document.getElementById("temperature").textContent  = data.temperature !== "--" ? `${data.temperature} °C` : "--";
   document.getElementById("wind").textContent         = data.wind_speed !== "--" ? `${data.wind_speed} mph` : "--";
   document.getElementById("precip").textContent       = data.precip_chance !== "--" ? `${data.precip_chance}%` : "--";
   document.getElementById("last_checked").textContent = data.last_checked ?? "--";
@@ -82,6 +82,7 @@ function updateWeather(data) {
 // === SECTION: SOLAR POSITION DATA ===
 
 socket.on("solar_update", updateSolar);
+socket.emit("get_solar");
 
 function updateSolar(data) {
   document.getElementById("solar_alt").textContent   = data.solar_alt ?? "--";
@@ -141,3 +142,34 @@ socket.on("mount_coordinates", (coords) => {
   document.getElementById("ra-placeholder").textContent  = coords.ra ?? "--";
   document.getElementById("dec-placeholder").textContent = coords.dec ?? "--";
 });
+
+// === SECTION: FOCUSER CONTROL ===
+
+function nstepMove(direction) {
+  const speed = document.getElementById("nstepSpeed").value;
+  socket.emit("nstep_move", {
+    direction,
+    speed: parseInt(speed),
+  });
+}
+
+// Handle slider update (reflects "set" position & speed)
+const nstepSpeedSlider = document.getElementById("nstepSpeed");
+const nstepSpeedValue = document.getElementById("nstepSpeedValue");
+
+nstepSpeedSlider.addEventListener("input", () => {
+  const val = nstepSpeedSlider.value;
+  nstepSpeedValue.textContent = `Set: ${val}%`;
+});
+
+// Receive focuser feedback from backend (INDIGO)
+socket.on("nstep_position", (data) => {
+  if ("set" in data) {
+    document.getElementById("nstepSetPosition").textContent = data.set;
+  }
+  if ("current" in data) {
+    document.getElementById("nstepCurrentPosition").textContent = data.current;
+  }
+});
+
+// === SECTION: FILE HANDLER ===

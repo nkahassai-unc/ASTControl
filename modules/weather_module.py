@@ -1,8 +1,12 @@
+# Weather Module
+# Weather forecast module using Open Meteo API
+# Set for latitude and longitude of Chapel Hill, NC
+
 import requests
 import time
 from datetime import datetime
 
-class Weatherman:
+class WeatherForecast:
     def __init__(self, latitude=35.9132, longitude=-79.0558):
         self.latitude = latitude
         self.longitude = longitude

@@ -101,4 +101,4 @@ def _client():
 
 def _update():
     """Update the last_updated timestamp."""
-    state["last_updated"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    state['last_updated'] = time.strftime("%Y-%m-%d %H:%M:%S")

@@ -1,19 +1,27 @@
-Current ASTControl 4.0 To Do (4.0):
+Current ASTControl To Do (4.0):
 
-- Finalize mount scripts (startup_, track_, shutdown_)
-- Add scripting agent + RA/DEC live to GUI
-- Weather → dome auto-close + warning display
-- Arduino dome/etalon: bind control + pos readout
-- UI: dome + etalon sliders/buttons + state text
-- FireCapture: test SSH run, add 1fps preview, cleanup loop
+INDIGO:
+- JSON Client
 - nSTEP: wire buttons, add feedback (INDIGO or fallback)
+- Add scripting agent + RA/DEC live to GUI
+- Finalize mount scripts (startup_, track_, shutdown_)
+- UI: dome + etalon sliders/buttons + state text
+
+Peripheral:
+- Arduino dome/etalon: bind control + pos readout
+
+Pi SD Card Setup:
+- Remote: VNC/SSH check, prep systemd autostart
 - Dome cam + science cam feeds live
 - File handler: reconnect, show file status, prep AS4 pipe
-- Polish layout: no shifting, static log, all feedback live
-- Remote: VNC/SSH check, prep systemd autostart
+- FireCapture: test SSH run, add 1fps preview, cleanup loop
+
+Automation 1.0:
+- Weather → dome auto-close + warning display
 
 
 *-*-*-*-*-*-*-
+DEPRECATED
 3.0 To Do:
     - Weather & Solar consolidated
     - Servo control integration
@@ -22,8 +30,9 @@ Current ASTControl 4.0 To Do (4.0):
     - VNC firecapture
     - File transfer monitoring
 
------------------------
-UNC Install Priorities:
+*-*-*-*-*-*-*-
+DEPRECATED
+UNC Summer Install Priorities:
     - Network setup (DHCP, VNC)
     - Dome Camera ability (Motion)
     - File Transfer Protocol (Samba)
@@ -112,14 +121,16 @@ Web Design & Layout:
         - Status of file transfer/processing.
 
 ---------
-Mechancial:
+Mechanical:
 
     - (Resolved) diagnose servo jitter, added ferrite coils 
-    - 3D print box embedding coils & GPIO & arduino
-    - wire tilt sensor xtension onto dome
-    - 3D print holder for webcam
+    - (Utility Box) 3D print box embedding coils & GPIO & arduino
+    - (Deprecated) wire tilt sensor extension onto dome 
+    - (Resolved) 3D print holder for webcam
 
----------
+*-*-*-*-*-*-*-
+DEPRECATED
+
 Automation & Backend Architecture:
 
     server:
@@ -170,7 +181,7 @@ Automation & Backend Architecture:
         - hosted to other page on web server
 
 *-*-*-*-*-*-*-
-AST Control To Do (1.X.X)
+AST Control To Do (1.X)
 Web Design Critiques:
 - connect weather_monitor with track_sun (soon)
 

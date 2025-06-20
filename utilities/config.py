@@ -1,7 +1,7 @@
 # Confguration Settings
 
 # Remote Device Info
-RASPBERRY_PI_IP = "192.168.1.160"
+RASPBERRY_PI_IP = "192.168.1.147" # KC IP
 SSH_USERNAME = "pi"
 SSH_PASSWORD = "raspberry"
 

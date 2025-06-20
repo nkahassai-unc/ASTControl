@@ -1,9 +1,11 @@
+# Solar Module
+# Solar position module using PyEphem 
+# Set for latitude and longitude of Chapel Hill, NC
+
 import ephem
-import threading
-import time
 from datetime import datetime, timezone, timedelta
 
-class SolarCalculator:
+class SolarPosition:
     def __init__(self, latitude=35.9132, longitude=-79.0558):
         self.latitude = str(latitude)
         self.longitude = str(longitude)

@@ -16,25 +16,25 @@
     <header class="col-span-4 flex items-center">
       <img src="static/banner.png"
      alt="Automated Solar Telescope Banner"
-     style="height: 50px !important"
+     style="height: 40px !important"
      class="w-auto object-contain" />
     </header>
 
     <!-- Science Camera -->
     <section class="col-span-2 bg-gray-300 p-4 rounded shadow flex flex-col gap-2">
-      <h3 class="text-lg font-semibold">Science Camera</h3>
+      <h2 class="text-lg font-semibold">Science Camera</h2>
       <iframe src="http://192.168.1.160:6080/vnc.html" class="w-full h-[500px] rounded border-2 border-gray-600"></iframe>
     </section>
 
     <!-- Dome Camera -->
     <section class="col-span-2 bg-gray-300 p-4 rounded shadow flex flex-col gap-2">
-      <h3 class="text-lg font-semibold">Dome Camera</h3>
+      <h2 class="text-lg font-semibold">Dome Camera</h2>
       <img src="http://192.168.1.160:8081/0/stream" alt="Dome View" class="w-full h-[500px] object-cover rounded border-2 border-gray-600"/>
     </section>
 
     <!-- Mount Control -->
     <section class="col-span-1 bg-purple-100 p-4 rounded shadow flex flex-col gap-3">
-      <h3 class="text-lg font-semibold">Mount Control</h3>
+      <h2 class="text-lg font-semibold">Mount Control</h2>
 
       <div class="flex justify-between bg-gray-200 p-2 rounded text-sm">
         <p>RA: <strong id="ra-placeholder">00:00:00.00</strong></p>
@@ -42,10 +42,14 @@
       </div>
 
       <!-- Mount Actions -->
-      <div class="flex gap-2 justify-center">
+      <div class="flex items-center justify-between text-sm">
         <p>Status: <span id="mount-status" class="font-semibold text-gray-700">--</span></p>
+      </div>
+
+      <div class="flex gap-2 justify-center">
         <button id="track-sun" class="bg-yellow-500 text-white px-3 py-1 rounded text-sm font-semibold">Track Sun</button>
-        <button id="park-mount" class="bg-indigo-600 text-white px-3 py-1 rounded text-sm font-semibold">Park Mount</button>
+        <button id="park-mount" class="bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold">Park Mount</button>
+        <button id="unpark-mount" class="bg-green-600 text-white px-3 py-1 rounded text-sm font-semibold">Unpark Mount</button>
       </div>
 
       <label for="slew-rate">Slew Rate</label>
@@ -66,11 +70,11 @@
 
     <!-- Solar & Weather -->
     <section class="col-span-1 bg-yellow-100 p-4 rounded shadow flex flex-col gap-3">
-      <h3 class="text-lg font-semibold text-gray-800">Solar & Weather Forecast</h3>
+      <h2 class="text-lg font-semibold text-black-800">Solar & Weather Forecast</h2>
 
       <!-- Solar Position -->
       <div>
-        <h4 class="font-semibold text-gray-700 mb-1">Solar Position</h4>
+        <h3 class="font-semibold text-gray-700 mb-1">Solar Position</h3>
         <div class="text-sm text-gray-800">
           Last Update: <strong id="sun_time">--</strong>
         </div>
@@ -87,7 +91,7 @@
 
       <!-- Weather -->
       <div>
-        <h4 class="font-semibold text-gray-700 mb-1 mt-2">Weather @ Chapel Hill, NC</h4>
+        <h3 class="font-semibold text-gray-700 mb-1 mt-2">Weather @ Chapel Hill, NC</h3>
         <div class="text-sm text-gray-800">
           Last Checked: <strong id="last_checked">--</strong>
         </div>
@@ -102,15 +106,73 @@
       </div>
     </section>
 
-    <!-- Peripheral Control Placeholder -->
-    <section class="col-span-2 bg-sky-100 p-4 rounded shadow">
-      <h3 class="text-lg font-semibold">Peripheral Control</h3>
-      <p class="text-sm italic text-gray-600">Dome, nSTEP, Etalons UI continues here...</p>
+    <!-- Peripheral Control -->
+    <section class="col-span-2 bg-sky-100 p-4 rounded shadow space-y-4">
+      <h2 class="text-lg font-semibold">Peripheral Control</h2>
+
+      <!-- Dome Control -->
+      <div>
+        <h3 class="text-large font-semibold font-large text-gray-700 mb-1">Dome Control</h3>
+        <div class="flex items-center space-x-4">
+          <button onclick="setDome('open')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded">Open</button>
+          <button onclick="setDome('close')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded">Close</button>
+          <span id="domeStatus" class="ml-4 text-medium font-semibold text-gray-700">Status: Unknown</span>
+        </div>
+      </div>
+
+      <!-- nSTEP Control -->
+      <div>
+        <h3 class="text-large font-semibold text-gray-700 mb-1">nSTEP Focuser</h3>
+        
+        <!-- Motion Buttons -->
+        <div class="flex items-center space-x-4 mb-2">
+          <button onclick="nstepMove('in')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded">In</button>
+          <button onclick="nstepMove('stop')" class="bg-red-500 hover:bg-gray-600 text-white px-4 py-1 rounded">STOP</button>
+          <button onclick="nstepMove('out')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded">Out</button>
+        </div>
+
+        <!-- Speed Slider -->
+        <div class="flex items-center space-x-2 ml-4 mb-2">
+          <label for="nstepSpeed" class="w-24 font-medium">Focuser Speed:</label>
+          <input type="range" id="nstepSpeed" min="1" max="100" value="50" class="w-64">
+          <span id="nstepSpeedValue" class="text-medium">Set: 50%</span>
+        </div>
+
+        <!-- Position Display -->
+        <div class="flex items-center ml-4 space-x-6 text-sm text-gray-700">
+          <div>Set Position: <span id="nstepSetPosition">—</span></div>
+          <div>Current Position: <span id="nstepCurrentPosition">—</span></div>
+        </div>
+      </div>
+
+
+      <!-- Etalon Controls -->
+      <div>
+        <h3 class="text-large font-semibold font-large text-gray-700 mb-1">Etalon Control</h3>
+        <div class="flex flex-col space-y-3">
+          <div class="flex items-center space-x-4">
+            <label for="etalon1Slider" class="w-20 text-medium font-medium">Etalon 1:</label>
+            <input type="range" id="etalon1Slider" min="0" max="180" value="90" class="w-100">
+            <span id="etalon1Value" class="text-medium">90°</span>
+          </div>
+          <div class="flex items-center space-x-4">
+            <label for="etalon2Slider" class="w-20 text-medium font-medium">Etalon 2:</label>
+            <input type="range" id="etalon2Slider" min="0" max="180" value="90" class="w-100">
+            <span id="etalon2Value" class="text-medium">90°</span>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <label for="etalonSpeed" class="w-20 text-medium font-medium">Etalon Speed:</label>
+          <input type="range" id="etalonSpeed" min="1" max="100" value="50" class="w-100">
+          <span id="etalonSpeedValue" class="text-medium">50%</span>
+        </div>
+      </div>
     </section>
+
 
     <!-- Server Control -->
     <section class="col-span-2 bg-red-200 p-4 rounded shadow flex flex-col gap-3">
-      <h3 class="text-lg font-semibold">INDIGO Server Control</h3>
+      <h2 class="text-lg font-semibold">INDIGO Server Control</h2>
 
       <div class="flex items-center justify-between text-sm">
         <p>Connected on: <strong id="server-ip">-</strong></p>
@@ -131,12 +193,27 @@
 
     <!-- File Status -->
     <section class="col-span-2 bg-purple-100 p-4 rounded shadow">
-      <h3 class="text-lg font-semibold">File Status</h3>
+      <h2 class="text-lg font-semibold">File Status</h2>
       <p>Status: <span id="file-status">Idle</span></p>
+
+      <div class="overflow-x-auto mt-4">
+        <table id="file-table" class="min-w-full text-sm text-left text-gray-800">
+          <thead class="bg-purple-200 text-gray-900">
+            <tr>
+              <th class="px-4 py-2">File Name</th>
+              <th class="px-4 py-2">Size</th>
+              <th class="px-4 py-2">Last Modified</th>
+            </tr>
+          </thead>
+          <tbody id="file-table-body" class="bg-purple-50">
+            <!-- Rows will be inserted here via JavaScript -->
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 
-  <footer class="text-center mt-6 text-sm text-gray-600">
+  <footer class="text-center mt-4 text-sm text-gray-600">
     <p>&copy; 2025 Automated Solar Telescope. Built by Nathnael Kahassai.</p>
   </footer>
 

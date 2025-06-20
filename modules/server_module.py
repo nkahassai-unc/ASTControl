@@ -1,15 +1,22 @@
 # Server Module
 # Remote INDIGO server controller for Flask GUI or CLI
 
+import threading
+from utilities.indigo_json_client import IndigoJSONClient
 from utilities.network_utils import (
     get_ssh_client,
     stream_ssh_output,
     run_ssh_command,
     check_remote_port
 )
-import threading
 
-class IndigoServer:
+indigo_client = IndigoJSONClient()
+
+def start_indigo_client():
+    import threading
+    threading.Thread(target=indigo_client.connect, daemon=True).start()
+
+class IndigoRemoteServer:
     def __init__(self, ip, username, password, port=7624):
         self.ip = ip
         self.port = port
@@ -55,3 +62,4 @@ class IndigoServer:
         return {
             "running": self.check_status()
         }
+    
