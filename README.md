@@ -49,14 +49,13 @@ Originally developed for solar instrumentation at UNC-Chapel Hill, ASTControl no
    ```bash
    pip install -r requirements.txt
 
-
 3. Update configuration:
 
-Edit IPs, SSH credentials, and serial paths in config.py
+- Edit IPs, SSH credentials, and serial paths in config.py
 
-Flash the Arduino with appropriate dome/etalon firmware
+- Flash the Arduino with appropriate dome/etalon firmware
 
-Ensure the Raspberry Pi is network-accessible and the INDIGO server can be launched remotely
+- Ensure the Raspberry Pi is network-accessible and the INDIGO server can be launched remotely
 
 4. Launch the server:
    ```bash
@@ -90,5 +89,5 @@ This system assumes a stable Ethernet or LAN connection between the PC and Raspb
 
 All device communication is event-driven for responsiveness.
 
-Future updates may include automation routines and persistent data logging.
+Future updates intended to include automation routines and persistent data logging.
 
