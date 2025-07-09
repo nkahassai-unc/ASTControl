@@ -17,9 +17,11 @@ def set_socketio(instance):
 class MountControl:
     def __init__(self, indigo_client):
         self.client = indigo_client
-        self.device = "Mount Agent"
+        #self.device = "Mount PMC Eight"
+        self.device = "Mount Simulator"
 
         self.solar = SolarPosition()
+        self.set_location(35.9121, -79.0558, 100)  # Chapel Hill, NC
         self.tracking_active = False
         self.coord_monitor_active = False
 
@@ -36,7 +38,7 @@ class MountControl:
             _socketio.emit("server_log", f"[MOUNT_MODULE] {message}")
 
     def _handle_number_vector(self, msg):
-        if msg.get("name") == "AGENT_MOUNT_EQUATORIAL_COORDINATES":
+        if msg.get("name") == "MOUNT_EQUATORIAL_COORDINATES":
             for item in msg.get("items", []):
                 if item["name"] == "RA":
                     self.last_coords["ra"] = item["value"]
@@ -46,6 +48,23 @@ class MountControl:
             if _socketio:
                 _socketio.emit("mount_coordinates", self.last_coords)
 
+    def set_location(self, latitude, longitude, elevation):
+        try:
+            self.client.send({
+                "newNumberVector": {
+                    "device": self.device,
+                    "name": "GEOGRAPHIC_COORDINATES",
+                    "items": [
+                        {"name": "LAT", "value": latitude},
+                        {"name": "LONG", "value": longitude},
+                        {"name": "ELEVATION", "value": elevation}
+                    ]
+                }
+            }, quiet=True)
+            self.emit_log(f"Set geographic coordinates: lat={latitude}, lon={longitude}, elev={elevation}")
+        except Exception as e:
+            self.emit_log(f"[ERROR] Failed to set location: {e}")
+    
     def track_sun(self, interval=5):
         if self.tracking_active:
             self.emit_log("Sun tracking already active.")
@@ -86,7 +105,7 @@ class MountControl:
             self.client.send({
                 "newNumberVector": {
                     "device": self.device,
-                    "name": "AGENT_MOUNT_EQUATORIAL_COORDINATES",
+                    "name": "MOUNT_EQUATORIAL_COORDINATES",
                     "items": [{"name": "RA", "value": ra}, {"name": "DEC", "value": dec}]
                 }
             }, quiet=True)
@@ -94,10 +113,11 @@ class MountControl:
             self.client.send({
                 "newSwitchVector": {
                     "device": self.device,
-                    "name": "AGENT_START_PROCESS",
-                    "items": [{"name": "SLEW", "value": True}]
+                    "name": "MOUNT_ON_COORDINATES_SET",  # Alternative: "MOUNT_TRACKING"
+                    "items": [{"name": "ON_COORDINATES_SET", "value": True}]
                 }
             }, quiet=True)
+
             self.emit_status(f"Slewing to RA: {ra}, DEC: {dec}")
 
         except Exception as e:
@@ -160,7 +180,7 @@ class MountControl:
                     self.client.send({
                         "getProperties": {
                             "device": self.device,
-                            "name": "AGENT_MOUNT_EQUATORIAL_COORDINATES"
+                            "name": "MOUNT_EQUATORIAL_COORDINATES"
                         }
                     }, quiet=True)
                 except Exception as e:

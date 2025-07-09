@@ -1,7 +1,8 @@
 # Confguration Settings
 
 # Remote Device Info
-RASPBERRY_PI_IP = "192.168.1.147" # KC IP
+# RASPBERRY_PI_IP = "192.168.1.147" # KC IP
+RASPBERRY_PI_IP = "172.28.245.198"  # Local IP
 SSH_USERNAME = "pi"
 SSH_PASSWORD = "raspberry"
 
@@ -23,6 +24,10 @@ DEFAULT_SOLAR_DATA = {
     "sun_time": "--"
 }
 
+# Mount Coordinates (if needed)
+HOME_RA = "00:00:00"
+HOME_DEC = "+00:00:00"
+
 # Arduino Shared State
 ARDUINO_STATE = {
     "dome": "UNKNOWN",
@@ -34,7 +39,3 @@ ARDUINO_STATE = {
 # FireCapture Paths
 FIRECAPTURE_EXE = "/path/to/FireCapture.sh"
 SCREENSHOT_FOLDER = "/home/pi/fc_screens"
-
-# Mount Coordinates (if needed)
-HOME_RA = "00:00:00"
-HOME_DEC = "+00:00:00"

@@ -7,7 +7,7 @@ import json
 import time
 
 class IndigoJSONClient:
-    def __init__(self, host='indigosky.local', reconnect_interval=5):
+    def __init__(self, host):
         self.host = host
         self.port = 7624
         self.sock = None
@@ -15,7 +15,7 @@ class IndigoJSONClient:
         self.callbacks = {}  # action_type -> function(msg)
         self.connected = False
         self.lock = threading.Lock()  # for send() thread safety
-        self.reconnect_interval = reconnect_interval
+        self.reconnect_interval = 5
         self.retry_count = 0
         self.stop_flag = threading.Event()
 

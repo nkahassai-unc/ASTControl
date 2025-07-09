@@ -1,4 +1,4 @@
-# Flask App for Automated Solar Telescope
+# Flask App for Automated Solar Telescope Control
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)

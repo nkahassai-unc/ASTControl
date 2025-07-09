@@ -2,6 +2,7 @@
 # Remote INDIGO server controller for Flask GUI or CLI
 
 import threading
+from utilities.config import RASPBERRY_PI_IP
 from utilities.indigo_json_client import IndigoJSONClient
 from utilities.network_utils import (
     get_ssh_client,
@@ -10,15 +11,15 @@ from utilities.network_utils import (
     check_remote_port
 )
 
-indigo_client = IndigoJSONClient()
+indigo_client = IndigoJSONClient(RASPBERRY_PI_IP)
 
 def start_indigo_client():
     import threading
     threading.Thread(target=indigo_client.connect, daemon=True).start()
 
 class IndigoRemoteServer:
-    def __init__(self, ip, username, password, port=7624):
-        self.ip = ip
+    def __init__(self, server_ip, username, password, port=7624):
+        self.ip = server_ip
         self.port = port
         self.username = username
         self.password = password
