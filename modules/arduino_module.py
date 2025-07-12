@@ -1,5 +1,5 @@
 # Arduino Module
-# Description: Central Arduino controller for UI interaction using TCP client
+# Central Arduino controller for UI interaction using TCP client
 
 import threading
 import time

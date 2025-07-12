@@ -1,5 +1,59 @@
-Current ASTControl To Do (4.0):
+Current ASTControl To Do (3.5):
 
+ASTControl To Do (3.5) — Live Tasks
+
+INDIGO + Mount:
+- Finalize JSON client thread safety and shared instance
+- Test and debug startup_mount, track_sun, and shutdown_mount scripts
+- Add live RA/DEC readout to Mount Control tab
+- Move mount programming buttons from Server Control to Mount panel
+- Ensure mount sync and solar tracking flow is stable
+
+nSTEP Focuser:
+- Wire up direction buttons in the interface
+- Add feedback display for position or motion state
+- Confirm commands reach INDIGO or fallback handler
+
+Arduino (Dome + Etalons):
+- Confirm smooth control from GUI for all 3 servos
+- Stabilize Arduino serial/tcp comms
+- Add polling for live position updates
+- Display dome/etalon state text near controls
+
+FireCapture:
+- Confirm SSH startup works
+- Confirm 1 fps preview via proxy image stream
+- Add "Trigger Capture" button to call autoclicker script
+- Confirm Samba file sharing to local machine
+
+File Handler:
+- Copying logic, file status, and UI table confirmed
+- Fully test detect → copy → delete loop
+- Add file logging or session summary later
+- Plan AS4 + ImPPG hooks in Stage 2
+
+Cameras:
+- Dome Cam via Motion server confirmed
+- Science Cam via FireCapture confirmed
+- Optional: frame capture toggle logic or LED indicator
+
+Automation Panel (Stage 1.5 Planning):
+- Add automation tab with:
+  - Manual buttons for mount scripts (startup, track, shutdown)
+  - Placeholders for time-based or weather triggers
+  - Optional: persistent JSON logging for session tracking
+
+Systems Monitor (Stage 2 Planning):
+- Add Systems Monitor tab with:
+  - Heartbeat/status for INDIGO, Arduino, FireCapture, file handler
+  - Optional: error tracking, log flush, healthcheck summary
+
+Hardware Setup:
+- Clear room and set up mount for testing
+- Continue wiring cleanup and Arduino enclosure work
+
+*-*-*-*-*-*-*-
+DEPRECATED
 INDIGO:
 - JSON Client
 - nSTEP: wire buttons, add feedback (INDIGO or fallback)
