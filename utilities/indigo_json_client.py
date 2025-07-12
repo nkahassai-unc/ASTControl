@@ -5,6 +5,7 @@ import socket
 import threading
 import json
 import time
+import select
 
 class IndigoJSONClient:
     def __init__(self, host):
@@ -25,6 +26,7 @@ class IndigoJSONClient:
                 print(f"[INDIGO] Connecting to {self.host}:{self.port}... (Attempt {self.retry_count + 1})")
                 self.sock = socket.create_connection((self.host, self.port), timeout=10)
                 self.connected = True
+                self.retry_count = 0
                 print("[INDIGO] Connected.")
                 self.listener_thread = threading.Thread(target=self._listen_loop, daemon=True)
                 self.listener_thread.start()
@@ -39,7 +41,7 @@ class IndigoJSONClient:
 
     def send(self, message: dict, quiet: bool = False):
         """Send a JSON message to INDIGO."""
-        if not self.connected:
+        if not self.connected or not self.sock:
             if not quiet:
                 print("[INDIGO] Not connected — skipping send.")
             return
@@ -59,19 +61,28 @@ class IndigoJSONClient:
         buffer = ''
         try:
             while not self.stop_flag.is_set():
-                data = self.sock.recv(4096).decode()
-                if not data:
-                    print("[INDIGO] Connection closed by remote.")
-                    break
-                buffer += data
-                while '\n' in buffer:
-                    line, buffer = buffer.split('\n', 1)
-                    self._dispatch(line.strip())
+                # Wait up to 1 second for data to become readable
+                ready, _, _ = select.select([self.sock], [], [], 1.0)
+                if ready:
+                    data = self.sock.recv(4096).decode()
+                    if not data:
+                        print("[INDIGO] Connection closed by remote.")
+                        break
+                    buffer += data
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        self._dispatch(line.strip())
+                else:
+                    # No data yet — skip this loop cycle
+                    continue
         except (ConnectionResetError, socket.timeout, OSError) as e:
             print(f"[INDIGO] Listener error: {e}")
         finally:
             self.connected = False
-            self.sock.close()
+            try:
+                self.sock.close()
+            except:
+                pass
             print("[INDIGO] Disconnected. Attempting to reconnect...")
             print("[INDIGO] Reconnection skipped after listener exit.")
 
@@ -90,6 +101,10 @@ class IndigoJSONClient:
     def on(self, kind, callback):
         """Register callback for message kind ('set', 'get', etc)."""
         self.callbacks[kind] = callback
+
+    def is_connected(self):
+        """Return True if the client is actively connected and socket is valid."""
+        return self.connected and self.sock is not None
 
     def close(self):
         """Clean shutdown."""

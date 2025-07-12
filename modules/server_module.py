@@ -2,6 +2,7 @@
 # Remote INDIGO server controller for Flask GUI or CLI
 
 import threading
+import time
 from utilities.config import RASPBERRY_PI_IP
 from utilities.indigo_json_client import IndigoJSONClient
 from utilities.network_utils import (
@@ -38,11 +39,29 @@ class IndigoRemoteServer:
 
         def runner():
             try:
-                # Kill existing instances to avoid bind error
+                # Kill existing INDIGO instances
                 run_ssh_command(self.client, "pkill -f indigo_server")
+
+                # Start server in background
                 stream_ssh_output(self.client, "indigo_server", callback)
+
             except Exception as e:
                 callback(f"[ERROR] INDIGO server stream failed: {e}")
+                self.running = False
+                return
+
+            # Wait for port to be available (max 10s)
+            for i in range(20):  # Try every 0.5s for 10 seconds
+                if check_remote_port(self.ip, self.port):
+                    callback(f"[INDIGO] Server online at {self.ip}:{self.port}")
+                    start_indigo_client()
+                    break
+                else:
+                    callback(f"[INDIGO] Waiting for server port {self.port}... ({i+1}/20)")
+                    time.sleep(0.5)
+            else:
+                callback(f"[INDIGO] Failed to detect server after 10s.")
+
             self.running = False
 
         self.thread = threading.Thread(target=runner, daemon=True)

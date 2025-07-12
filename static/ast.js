@@ -6,13 +6,17 @@ socket.on("connect", () => {
   console.log("[SocketIO] Connected. Requesting current data...");
   socket.emit("get_weather");
   socket.emit("check_indigo_status");
-  socket.emit("get_mount_coordinates"); 
+  socket.emit("get_mount_coordinates");
+  socket.emit("get_mount_status");
+  socket.emit("get_fc_status");
+  updateArduinoStatus();
 });
 
 // === SECTION: INDIGO SERVER CONTROL ===
 
 const startBtn     = document.getElementById("start-server");
 const stopBtn      = document.getElementById("kill-server");
+const serverBtn    = document.getElementById("server-manager");
 const logBox       = document.getElementById("server-log");
 const statusLight  = document.getElementById("indigo-status");
 const ipText       = document.getElementById("server-ip");
@@ -26,6 +30,11 @@ startBtn.addEventListener("click", () => {
 stopBtn.addEventListener("click", () => {
   logBox.innerHTML += "<div>[CLIENT] Stopping INDIGO server...</div>";
   socket.emit("stop_indigo");
+});
+
+// Open server manager in new tab
+serverBtn.addEventListener("click", () => {
+  window.open(`http://${piIp}:7624`, "_blank");
 });
 
 // Handle live INDIGO server log streaming
@@ -58,7 +67,7 @@ socket.on("indigo_status", (data) => {
     statusText.textContent = "● Online";
     statusText.classList.remove("text-red-700");
     statusText.classList.add("text-green-700");
-    ipText.textContent = "192.168.1.160 :7624";  // or dynamically from config
+    ipText.textContent = `${data.ip}:7624`;  // dynamically update
   } else {
     statusText.textContent = "● Offline";
     statusText.classList.remove("text-green-700");
@@ -66,6 +75,11 @@ socket.on("indigo_status", (data) => {
     ipText.textContent = "-";
   }
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  socket.emit("check_indigo_status");
+});
+
 
 // === SECTION: WEATHER DATA ===
 
@@ -78,6 +92,7 @@ function updateWeather(data) {
   document.getElementById("precip").textContent       = data.precip_chance !== "--" ? `${data.precip_chance}%` : "--";
   document.getElementById("last_checked").textContent = data.last_checked ?? "--";
 }
+
 
 // === SECTION: SOLAR POSITION DATA ===
 
@@ -92,6 +107,24 @@ function updateSolar(data) {
   document.getElementById("solar_noon").textContent  = data.solar_noon ?? "--";
   document.getElementById("sun_time").textContent    = data.sun_time ?? "--";
 }
+
+// === Mount + Solar RA/DEC State Polling ===
+setInterval(() => {
+  socket.emit("get_mount_solar_state");
+}, 1000); // every 1 second
+
+// === Socket listener for mount/solar state ===
+socket.on("mount_solar_state", (data) => {
+  const raSolar = document.getElementById("ra-solar");
+  const decSolar = document.getElementById("dec-solar");
+  const raMount = document.getElementById("ra-mount");
+  const decMount = document.getElementById("dec-mount");
+
+  if (raSolar) raSolar.textContent = data.ra_solar || "--:--:--";
+  if (decSolar) decSolar.textContent = data.dec_solar || "--:--:--";
+  if (raMount) raMount.textContent = data.ra_mount || "--:--:--";
+  if (decMount) decMount.textContent = data.dec_mount || "--:--:--";
+});
 
 // === SECTION: MOUNT CONTROL ===
 
@@ -143,24 +176,14 @@ socket.on("mount_coordinates", (coords) => {
   document.getElementById("dec-placeholder").textContent = coords.dec ?? "--";
 });
 
+
 // === SECTION: FOCUSER CONTROL ===
 
 function nstepMove(direction) {
-  const speed = document.getElementById("nstepSpeed").value;
   socket.emit("nstep_move", {
-    direction,
-    speed: parseInt(speed),
+    direction: direction,
   });
 }
-
-// Handle slider update (reflects "set" position & speed)
-const nstepSpeedSlider = document.getElementById("nstepSpeed");
-const nstepSpeedValue = document.getElementById("nstepSpeedValue");
-
-nstepSpeedSlider.addEventListener("input", () => {
-  const val = nstepSpeedSlider.value;
-  nstepSpeedValue.textContent = `Set: ${val}%`;
-});
 
 // Receive focuser feedback from backend (INDIGO)
 socket.on("nstep_position", (data) => {
@@ -172,4 +195,208 @@ socket.on("nstep_position", (data) => {
   }
 });
 
+
+// === SECTION: SCIENCE CAMERA ===
+
+const img = document.getElementById("fc-preview");
+const piIp = img?.dataset.piIp;
+const indicator = document.getElementById("fc-status-indicator");
+let previewPoll = null;
+
+function startFcPreview() {
+  socket.emit("start_fc_preview");
+
+  img.classList.remove("opacity-50", "max-w-[300px]", "bg-gray-400");
+
+  if (previewPoll) clearInterval(previewPoll);
+  previewPoll = setInterval(() => {
+    img.src = `http://${piIp}:8082/fc_preview.jpg?cache=${Date.now()}`;
+  }, 500);
+
+  // Move these outside the interval so they don’t reassign every time
+  img.onload = () => {
+    indicator.classList.replace("bg-red-500", "bg-green-500");
+    img.classList.remove("opacity-50", "max-w-[300px]");
+  };
+
+  img.onerror = () => {
+    indicator.classList.replace("bg-green-500", "bg-red-500");
+    img.src = "/static/no_preview.png";
+    img.classList.add("opacity-50", "max-w-[300px]");
+  };
+}
+
+function stopFcPreview() {
+  socket.emit("stop_fc_preview");
+
+  if (previewPoll) clearInterval(previewPoll);
+  previewPoll = null;
+
+  img.src = "/static/no_preview.png";
+  img.onload = null;
+  img.onerror = null;
+
+  indicator.classList.remove("bg-green-500");
+  indicator.classList.add("bg-red-500");
+
+  img.classList.add("opacity-50", "max-w-[300px]", "bg-gray-400");
+}
+
+function triggerFcCapture() {
+  socket.emit("trigger_fc_capture");
+
+  img.classList.add("ring", "ring-blue-400");
+
+  setTimeout(() => {
+    img.classList.remove("ring", "ring-blue-400");
+  }, 500);
+}
+
+socket.on("fc_preview_status", (status) => {
+  if (status) {
+    startFcPreview();
+  } else {
+    stopFcPreview();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  socket.emit("get_fc_status");
+});
+
+window.startFcPreview = startFcPreview;
+window.stopFcPreview = stopFcPreview;
+window.triggerFcCapture = triggerFcCapture;
+
+
+// === SECTION: DOME CAMERA ===
+
+// Set dome cam stream src on page load
+const domeView = document.getElementById("dome-view");
+if (domeView && piIp) {
+  domeView.src = `http://${piIp}:8081/0/stream`;
+}
+
+
+// === SECTION: ARDUINO CONTROL ===
+
+// === Dome control ===
+function setDome(state) {
+  socket.emit("set_dome", { state });
+  console.log("[ARDUINO] Setting dome state to:", state);
+}
+
+// === Etalon sliders ===
+["1", "2"].forEach((index) => {
+  const slider = document.getElementById(`etalon${index}Slider`);
+  const valueLabel = document.getElementById(`etalon${index}Value`);
+
+  if (slider && valueLabel) {
+    slider.addEventListener("input", () => {
+      const val = parseInt(slider.value);
+      valueLabel.textContent = `${val}°`;
+      socket.emit("set_etalon", {
+        index: parseInt(index),
+        value: val
+      });
+    });
+  }
+});
+
+// === Unified state updater ===
+socket.on("arduino_state", (state) => {
+  setArduinoStatus(state.connected);
+  console.log("[ARDUINO] Arduino state:", state);
+
+  // Dome
+  const domeLabel = document.getElementById("domeStatus");
+  if (domeLabel) domeLabel.textContent = "Status: " + state.dome;
+
+  // Etalons
+  for (let i = 1; i <= 2; i++) {
+    const val = state[`etalon${i}`];
+    const slider = document.getElementById(`etalon${i}Slider`);
+    const label = document.getElementById(`etalon${i}Value`);
+    if (slider && label) {
+      slider.value = val;
+      label.textContent = `${val}°`;
+    }
+  }
+});
+
+// === Arduino Status Check ===
+function updateArduinoStatus() {
+  window._arduinoResponded = true;
+  socket.emit("get_arduino_state");
+
+  setTimeout(() => {
+    if (!window._arduinoResponded) {
+      setArduinoStatus(false);
+    }
+  }, 2000);
+}
+
+function setArduinoStatus(connected) {
+  const dot = document.getElementById("arduinoStatusDot");
+  const text = document.getElementById("arduinoStatusText");
+  if (!dot || !text) return;
+
+  if (connected) {
+    dot.classList.remove("bg-gray-400", "animate-pulse");
+    dot.classList.add("bg-green-500");
+    text.textContent = "Connected";
+  } else {
+    dot.classList.remove("bg-green-500");
+    dot.classList.add("bg-gray-400", "animate-pulse");
+    text.textContent = "Disconnected";
+  }
+}
+
+
 // === SECTION: FILE HANDLER ===
+function fetchFileList() {
+  const tableBody = document.getElementById("file-table-body");
+  const statusSpan = document.getElementById("file-status");
+
+  if (!tableBody || !statusSpan) return;
+
+  fetch("/get_file_list")
+    .then((response) => response.json())
+    .then((files) => {
+      tableBody.innerHTML = "";
+
+      let currentStatus = "Idle";
+
+      files.forEach((file) => {
+        const row = document.createElement("tr");
+
+        // Assign row background color based on file status
+        let rowClass = "";
+        if (file.status === "Copied") rowClass = "bg-green-100";
+        else if (file.status === "Copying") rowClass = "bg-yellow-100";
+        else if (file.status === "Failed") rowClass = "bg-red-100";
+
+        row.className = rowClass;
+
+        row.innerHTML = `
+          <td class="px-4 py-2">${file.name}</td>
+          <td class="px-4 py-2">${file.size}</td>
+          <td class="px-4 py-2">${file.modified}</td>
+        `;
+        tableBody.appendChild(row);
+
+        if (file.status === "Copying" || file.status === "Failed") {
+          currentStatus = file.status;
+        }
+      });
+
+      statusSpan.textContent = currentStatus;
+    })
+    .catch((err) => {
+      console.error("Error fetching file list:", err);
+      statusSpan.textContent = "Error";
+    });
+}
+
+window.addEventListener("load", fetchFileList);
+setInterval(fetchFileList, 5000);

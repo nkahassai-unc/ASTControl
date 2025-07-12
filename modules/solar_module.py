@@ -59,6 +59,23 @@ class SolarPosition:
         except Exception as e:
             print(f"[Solar] Error calculating solar position: {e}")
 
+    def get_solar_equatorial(self):
+        try:
+            self.observer.date = datetime.utcnow()
+            sun = ephem.Sun(self.observer)
+            ra = sun.ra  # in radians internally, but str is formatted
+            dec = sun.dec
+            return {
+                "ra_solar": str(ra),   # HH:MM:SS
+                "dec_solar": str(dec)  # ±DD:MM:SS
+            }
+        except Exception as e:
+            print(f"[Solar] Error getting RA/DEC: {e}")
+            return {
+                "ra_solar": "--:--:--",
+                "dec_solar": "--:--:--"
+            }
+        
     def get_data(self):
         return {**self.sun_times, **self.solar_position}
 

@@ -40,7 +40,7 @@ class WeatherForecast:
             self.weather_data = {
                 'temperature': round(current.get('temperature', 0), 2),
                 'wind_speed': current.get('windspeed', "--"),
-                'sky_conditions': "clear" if current.get('weathercode', 0) in [0, 1] else "cloudy",
+                'sky_conditions': "CLEAR" if current.get('weathercode', 0) in [0, 1] else "CLOUDY",
                 'precip_chance': round(precip_chance) if isinstance(precip_chance, (int, float)) else "--",
                 'last_checked': datetime.now().strftime('%m-%d %H:%M:%S')
             }

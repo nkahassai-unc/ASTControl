@@ -1,39 +1,110 @@
 # Arduino Module
-# Description: Central Arduino controller for UI interaction
+# Description: Central Arduino controller for UI interaction using TCP client
 
 import threading
 import time
-from utilities import network_utils, config
+import socket
+from utilities import config
+from utilities.config import RASPBERRY_PI_IP
 
 # === Arduino State (from config) ===
 state = config.ARDUINO_STATE
 
+_socketio = None
+
+def set_socketio(sio):
+    global _socketio
+    _socketio = sio
+
+# === TCP Client ===
+class ArduinoTCPClient:
+    def __init__(self, host=RASPBERRY_PI_IP, port=5555):
+        self.host = host
+        self.port = port
+        self.sock = None
+        self.lock = threading.Lock()
+        self.last_used = time.time()
+        self.idle_timeout = 20
+        self.watcher_thread = threading.Thread(target=self._idle_watcher, daemon=True)
+        self.watcher_thread.start()
+
+    def _connect(self):
+        try:
+            if self.sock:
+                self.sock.close()
+            self.sock = socket.create_connection((self.host, self.port))
+            state["connected"] = True
+            print("[ArduinoTCPClient] Connected to servo_daemon.")
+        except Exception as e:
+            state["connected"] = False
+            print(f"[ArduinoTCPClient] Connection failed: {e}")
+            self.sock = None
+
+    def send(self, message: str) -> str:
+        with self.lock:
+            try:
+                if not self.sock:
+                    self._connect()
+                    if not self.sock:
+                        return ""
+                self.sock.sendall((message + '\n').encode())
+
+                buffer = ""
+                while True:
+                    data = self.sock.recv(1024).decode()
+                    if not data:
+                        raise ConnectionError("Connection closed by server")
+                    buffer += data
+                    if '\n' in buffer:
+                        break
+                self.last_used = time.time()
+                state["connected"] = True
+                return buffer.strip()
+
+            except Exception as e:
+                state["connected"] = False
+                print(f"[ArduinoTCPClient] Send failed: {e}")
+                self.sock = None
+                return ""
+
+    def _idle_watcher(self):
+        while True:
+            time.sleep(5)
+            with self.lock:
+                if self.sock and (time.time() - self.last_used > self.idle_timeout):
+                    try:
+                        self.sock.close()
+                        print("[ArduinoTCPClient] Closed idle socket.")
+                    except:
+                        pass
+                    self.sock = None
+
+# Persistent client instance
+_client = ArduinoTCPClient()
+
 # === Public UI API ===
 
 def set_dome(state_cmd: str) -> bool:
-    """Set dome state: 'open' or 'close'."""
     if state_cmd not in ("open", "close"):
         return False
-    res = _send(f"DOME_{state_cmd.upper()}")
-    if _ok(res):
+    res = _send(f"dome {'180' if state_cmd == 'open' else '0'}")
+    if res.startswith("dome:"):
         state["dome"] = state_cmd.upper()
         _update()
         return True
     return False
 
 def set_etalon(index: int, value: int) -> bool:
-    """Set etalon1 or etalon2 to specific position (0–180)."""
     if index not in (1, 2) or not (0 <= value <= 180):
         return False
-    res = _send(f"ETALON{index}_SET:{value}")
-    if _ok(res):
+    res = _send(f"et{index} {value}")
+    if res.startswith(f"et{index}:"):
         state[f"etalon{index}"] = value
         _update()
         return True
     return False
 
 def get_state() -> dict:
-    """Full Arduino state for UI display."""
     return state
 
 def get_dome() -> str:
@@ -42,14 +113,11 @@ def get_dome() -> str:
 def get_etalon(index: int) -> int:
     return state.get(f"etalon{index}", 90)
 
-
 # === Background Polling Thread ===
-
 _poll_thread = None
 _running = False
 
 def start_monitor(interval=5):
-    """Start Arduino state polling."""
     global _poll_thread, _running
     if _poll_thread and _poll_thread.is_alive():
         return
@@ -58,47 +126,41 @@ def start_monitor(interval=5):
     _poll_thread.start()
 
 def stop_monitor():
-    """Stop polling loop."""
     global _running
     _running = False
-
 
 # === Internals ===
 
 def _poll_loop(interval):
-    """Loop to refresh dome + etalon state."""
     while _running:
         try:
-            dome = _send("DOME_STATUS")["stdout"].strip()
-            if dome in ("OPEN", "CLOSED"):
-                state["dome"] = dome
-
-            for i in (1, 2):
-                raw = _send(f"ETALON{i}_GET")["stdout"].strip()
-                if raw.isdigit():
-                    state[f"etalon{i}"] = int(raw)
-
+            dome = _send("status").strip()
+            for line in dome.split("\n"):
+                if line.startswith("dome:"):
+                    dome_pos = int(line.split(":")[1])
+                    state["dome_raw"] = dome_pos
+                    if dome_pos >= 170:
+                        state["dome"] = "OPEN"
+                    elif dome_pos <= 10:
+                        state["dome"] = "CLOSED"
+                    else:
+                        state["dome"] = f"Moving ({dome_pos}°)"
+                elif line.startswith("et1:"):
+                    state["etalon1"] = int(line.split(":")[1])
+                elif line.startswith("et2:"):
+                    state["etalon2"] = int(line.split(":")[1])
             _update()
-
         except Exception as e:
             print(f"[Arduino Monitor Error] {e}")
         time.sleep(interval)
 
-def _send(cmd: str) -> dict:
-    """Send a command to Arduino via serial-over-SSH."""
-    return network_utils.run_python_serial_command(_client(), cmd)
-
-def _ok(result: dict) -> bool:
-    return result.get("stdout", "").strip().upper() == "OK"
-
-def _client():
-    """Get reusable SSH client."""
-    return network_utils.get_ssh_client(
-        config.RASPBERRY_PI_IP,
-        config.SSH_USERNAME,
-        config.SSH_PASSWORD
-    )
+def _send(cmd: str) -> str:
+    return _client.send(cmd)
 
 def _update():
-    """Update the last_updated timestamp."""
     state['last_updated'] = time.strftime("%Y-%m-%d %H:%M:%S")
+    if _socketio:
+        try:
+            _socketio.emit("arduino_state", state)
+        except Exception as e:
+            print(f"[Emit Error] Failed to emit Arduino state: {e}")

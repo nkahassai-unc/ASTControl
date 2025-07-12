@@ -4,6 +4,7 @@
 import paramiko
 import socket
 import time
+from utilities.config import RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD
 
 def get_ssh_client(ip, username, password, retries=2):
     client = paramiko.SSHClient()
@@ -62,3 +63,10 @@ def run_ssh_command_with_log(client, command, log_callback):
         log_callback(f"[SSH:ERR] {line.strip()}")
 
     return stdout.channel.recv_exit_status()
+
+def run_pi_ssh_command(command):
+    """Run a one-off SSH command on the Pi using stored config credentials."""
+    client = get_ssh_client(RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD)
+    result = run_ssh_command(client, command)
+    client.close()
+    return result
