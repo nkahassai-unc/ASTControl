@@ -6,6 +6,7 @@ import time
 import socket
 from utilities import config
 from utilities.config import RASPBERRY_PI_IP
+from utilities.logger import emit_log
 
 # === Arduino State (from config) ===
 state = config.ARDUINO_STATE
@@ -25,19 +26,42 @@ class ArduinoTCPClient:
         self.lock = threading.Lock()
         self.last_used = time.time()
         self.idle_timeout = 20
+        self.last_fail_time = 0
+        self.fail_count = 0
+        self.max_log_interval = 15  # seconds
+        self.max_warns = 3
+        self.warn_sent = False
         self.watcher_thread = threading.Thread(target=self._idle_watcher, daemon=True)
         self.watcher_thread.start()
 
     def _connect(self):
+        if self.fail_count >= self.max_warns:
+            return  # Stop retrying after max_warns
+
         try:
             if self.sock:
                 self.sock.close()
-            self.sock = socket.create_connection((self.host, self.port))
+            self.sock = socket.create_connection((self.host, self.port), timeout=3)
             state["connected"] = True
-            print("[ArduinoTCPClient] Connected to servo_daemon.")
+            self.fail_count = 0
+            self.warn_sent = False
+            emit_log("[ARDUINO-TCP] ✅ Connected to servo_daemon.")
         except Exception as e:
             state["connected"] = False
-            print(f"[ArduinoTCPClient] Connection failed: {e}")
+            self.fail_count += 1
+            now = time.time()
+
+            if now - self.last_fail_time > self.max_log_interval:
+                emit_log(f"[ARDUINO-TCP] ❌ Connection attempt {self.fail_count}: {e}")
+                self.last_fail_time = now
+
+            if _socketio and not self.warn_sent and self.fail_count == self.max_warns:
+                try:
+                    _socketio.emit("server_log", "⚠️ Arduino unreachable after 5 retries.")
+                    self.warn_sent = True
+                except Exception as emit_err:
+                    emit_log(f"[ARDUINO-TCP] Emit fail: {emit_err}")
+
             self.sock = None
 
     def send(self, message: str) -> str:
@@ -63,7 +87,7 @@ class ArduinoTCPClient:
 
             except Exception as e:
                 state["connected"] = False
-                print(f"[ArduinoTCPClient] Send failed: {e}")
+                emit_log(f"[ARDUINO-TCP] Send failed: {e}")
                 self.sock = None
                 return ""
 
@@ -74,7 +98,7 @@ class ArduinoTCPClient:
                 if self.sock and (time.time() - self.last_used > self.idle_timeout):
                     try:
                         self.sock.close()
-                        print("[ArduinoTCPClient] Closed idle socket.")
+                        emit_log("[ARDUINO-TCP] Closed idle socket.")
                     except:
                         pass
                     self.sock = None
@@ -132,7 +156,16 @@ def stop_monitor():
 # === Internals ===
 
 def _poll_loop(interval):
+    retry_delay = 10  # seconds between retry attempts
+
     while _running:
+        if not state.get("connected"):
+            if _client.fail_count < _client.max_warns:
+                _client._connect()
+            else:
+                time.sleep(retry_delay)
+                continue
+
         try:
             dome = _send("status").strip()
             for line in dome.split("\n"):
@@ -151,7 +184,8 @@ def _poll_loop(interval):
                     state["etalon2"] = int(line.split(":")[1])
             _update()
         except Exception as e:
-            print(f"[Arduino Monitor Error] {e}")
+            emit_log(f"[Arduino Monitor Error] {e}")
+            state["connected"] = False
         time.sleep(interval)
 
 def _send(cmd: str) -> str:
@@ -163,4 +197,4 @@ def _update():
         try:
             _socketio.emit("arduino_state", state)
         except Exception as e:
-            print(f"[Emit Error] Failed to emit Arduino state: {e}")
+            emit_log(f"[Emit Error] Failed to emit Arduino state: {e}")

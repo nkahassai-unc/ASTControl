@@ -6,6 +6,7 @@ import threading
 import json
 import time
 import select
+from utilities.logger import emit_log
 
 class IndigoJSONClient:
     def __init__(self, host):
@@ -23,16 +24,16 @@ class IndigoJSONClient:
     def connect(self, max_retries=10):
         while not self.stop_flag.is_set() and self.retry_count < max_retries:
             try:
-                print(f"[INDIGO] Connecting to {self.host}:{self.port}... (Attempt {self.retry_count + 1})")
+                emit_log(f"[INDIGO] Connecting to {self.host}:{self.port}... (Attempt {self.retry_count + 1})")
                 self.sock = socket.create_connection((self.host, self.port), timeout=10)
                 self.connected = True
                 self.retry_count = 0
-                print("[INDIGO] Connected.")
+                emit_log("[INDIGO] Connected.")
                 self.listener_thread = threading.Thread(target=self._listen_loop, daemon=True)
                 self.listener_thread.start()
                 return
             except (socket.timeout, ConnectionRefusedError, OSError) as e:
-                print(f"[INDIGO] Connection failed: {e}. Retrying in {self.reconnect_interval}s...")
+                emit_log(f"[INDIGO] Connection failed: {e}. Retrying in {self.reconnect_interval}s...")
                 time.sleep(self.reconnect_interval)
                 self.retry_count += 1
 
@@ -43,7 +44,7 @@ class IndigoJSONClient:
         """Send a JSON message to INDIGO."""
         if not self.connected or not self.sock:
             if not quiet:
-                print("[INDIGO] Not connected — skipping send.")
+                emit_log("[INDIGO] Not connected — skipping send.")
             return
         raw = json.dumps(message) + '\n'
         with self.lock:
@@ -51,7 +52,7 @@ class IndigoJSONClient:
                 self.sock.sendall(raw.encode())
             except (BrokenPipeError, OSError) as e:
                 if not quiet:
-                    print(f"[INDIGO] Send failed: {e}")
+                    emit_log(f"[INDIGO] Send failed: {e}")
                 self.connected = False
                 if not quiet:
                     raise
@@ -66,7 +67,7 @@ class IndigoJSONClient:
                 if ready:
                     data = self.sock.recv(4096).decode()
                     if not data:
-                        print("[INDIGO] Connection closed by remote.")
+                        emit_log("[INDIGO] Connection closed by remote.")
                         break
                     buffer += data
                     while '\n' in buffer:
@@ -76,15 +77,15 @@ class IndigoJSONClient:
                     # No data yet — skip this loop cycle
                     continue
         except (ConnectionResetError, socket.timeout, OSError) as e:
-            print(f"[INDIGO] Listener error: {e}")
+            emit_log(f"[INDIGO] Listener error: {e}")
         finally:
             self.connected = False
             try:
                 self.sock.close()
             except:
                 pass
-            print("[INDIGO] Disconnected. Attempting to reconnect...")
-            print("[INDIGO] Reconnection skipped after listener exit.")
+            emit_log("[INDIGO] Disconnected. Attempting to reconnect...")
+            emit_log("[INDIGO] Reconnection skipped after listener exit.")
 
     def _dispatch(self, line: str):
         """Handle a single JSON message from INDIGO."""
@@ -94,9 +95,9 @@ class IndigoJSONClient:
             if kind in self.callbacks:
                 self.callbacks[kind](msg)
             else:
-                print(f"[INDIGO] Unhandled message: {msg}")
+                emit_log(f"[INDIGO] Unhandled message: {msg}")
         except json.JSONDecodeError:
-            print("[INDIGO] Failed to parse:", line)
+            emit_log("[INDIGO] Failed to parse:", line)
 
     def on(self, kind, callback):
         """Register callback for message kind ('set', 'get', etc)."""
@@ -115,4 +116,4 @@ class IndigoJSONClient:
                 self.sock.close()
             except:
                 pass
-        print("[INDIGO] Client closed.")
+        emit_log("[INDIGO] Client closed.")

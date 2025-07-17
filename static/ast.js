@@ -5,6 +5,7 @@ const socket = io();
 socket.on("connect", () => {
   console.log("[SocketIO] Connected. Requesting current data...");
   socket.emit("get_weather");
+  socket.emit("get_solar");
   socket.emit("check_indigo_status");
   socket.emit("get_mount_coordinates");
   socket.emit("get_mount_status");
@@ -20,6 +21,8 @@ const serverBtn    = document.getElementById("server-manager");
 const logBox       = document.getElementById("server-log");
 const statusLight  = document.getElementById("indigo-status");
 const ipText       = document.getElementById("server-ip");
+const piIp         = document.querySelector("[data-pi-ip]")?.dataset.piIp;
+
 
 // Emit start/stop commands
 startBtn.addEventListener("click", () => {
@@ -45,7 +48,6 @@ socket.on("server_log", (msg) => {
   line.textContent = msg;
   logBox.appendChild(line);
 
-  // Limit lines
   while (logBox.children.length > MAX_LOG_LINES) {
     logBox.removeChild(logBox.firstChild);
   }
@@ -94,36 +96,209 @@ function updateWeather(data) {
 }
 
 
-// === SECTION: SOLAR POSITION DATA ===
+// === SECTION: SUN PATH PLOT ===
+const canvas = document.getElementById("solar-canvas");
+const ctx = canvas.getContext("2d");
 
-socket.on("solar_update", updateSolar);
-socket.emit("get_solar");
+let sunPath = [];
+let sunDot = { az: null, alt: null };
+let mountDot = { az: null, alt: null };
 
-function updateSolar(data) {
+function toXY(az, alt) {
+  const padding = 20;
+  const clampedAz = Math.min(360, Math.max(0, az));
+  const clampedAlt = Math.min(90, Math.max(0, alt));
+
+  const x = padding + (clampedAz / 360) * (canvas.width - 2 * padding);
+  const y = canvas.height - padding - (clampedAlt / 90) * (canvas.height - 2 * padding);
+  return [x, y];
+}
+
+function drawSunPath() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const padding = 20;
+
+  // Gridlines
+  ctx.strokeStyle = "#ddd";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+
+  for (let alt = 0; alt <= 90; alt += 15) {
+    const [, y] = toXY(0, alt);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(canvas.width - padding, y);
+    ctx.stroke();
+  }
+
+  for (let az = 0; az <= 360; az += 45) {
+    const [x] = toXY(az, 0);
+    ctx.beginPath();
+    ctx.moveTo(x, padding);
+    ctx.lineTo(x, canvas.height - padding);
+    ctx.stroke();
+  }
+
+  ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = "#333";
+  ctx.font = "11px sans-serif";
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (let az = 0; az <= 360; az += 45) {
+    const [x] = toXY(az, 0);
+    ctx.fillText(`${az}°`, x, canvas.height - padding + 4);
+  }
+
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let alt = 0; alt <= 90; alt += 15) {
+    const [, y] = toXY(0, alt);
+    ctx.fillText(`${alt}°`, padding - 4, y);
+  }
+
+  // Sun Path
+  if (sunPath.length > 0) {
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    sunPath.forEach((pt, i) => {
+      const [x, y] = toXY(parseFloat(pt.az), parseFloat(pt.alt));
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "#FFA500";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Sun Dot
+  if (sunDot.az !== null && sunDot.alt !== null) {
+    const [sx, sy] = toXY(sunDot.az, sunDot.alt);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "orange";
+    ctx.fill();
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+  }
+
+  // Mount Dot
+  if (mountDot.az !== null && mountDot.alt !== null) {
+    const [mx, my] = toXY(mountDot.az, mountDot.alt);
+    ctx.beginPath();
+    ctx.arc(mx, my, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#007BFF";
+    ctx.fill();
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+  }
+
+  if (hoverPt) {
+    ctx.beginPath();
+    ctx.arc(hoverPt.x, hoverPt.y, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(255, 165, 0, 0.3)";
+    ctx.fill();
+  }
+}
+
+// Resize logic
+function resizeCanvas() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+  drawSunPath();
+}
+window.addEventListener("resize", resizeCanvas);
+setTimeout(resizeCanvas, 100); // ensure layout settles first
+
+// Fetch initial solar path
+fetch("/get_solar_path")
+  .then((res) => res.json())
+  .then((data) => {
+    sunPath = data.map(d => ({
+      az: parseFloat(d.az),
+      alt: parseFloat(d.alt),
+      time: d.time  // ← add this
+    }));
+    drawSunPath();
+  });
+
+const tooltip = document.getElementById("solar-tooltip");
+let hoverPt = null;
+
+canvas.addEventListener("mousemove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  let closest = null;
+  let minDist = Infinity;
+
+  sunPath.forEach((pt) => {
+    const [x, y] = toXY(pt.az, pt.alt);
+    const dist = Math.hypot(x - mouseX, y - mouseY);
+
+    if (dist < minDist && dist < 10) {
+      closest = { x, y, time: pt.time };
+      minDist = dist;
+    }
+  });
+
+  drawSunPath(); // clear and redraw
+
+  if (closest) {
+    ctx.beginPath();
+    ctx.arc(closest.x, closest.y, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(255,165,0,0.3)";
+    ctx.fill();
+
+    // Draw time label
+    ctx.fillStyle = "#000";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(closest.time ?? "??", closest.x, closest.y - 8);
+  }
+});
+
+// Solar updates
+socket.on("solar_update", (data) => {
   document.getElementById("solar_alt").textContent   = data.solar_alt ?? "--";
   document.getElementById("solar_az").textContent    = data.solar_az ?? "--";
   document.getElementById("sunrise").textContent     = data.sunrise ?? "--";
   document.getElementById("sunset").textContent      = data.sunset ?? "--";
   document.getElementById("solar_noon").textContent  = data.solar_noon ?? "--";
   document.getElementById("sun_time").textContent    = data.sun_time ?? "--";
-}
 
-// === Mount + Solar RA/DEC State Polling ===
-setInterval(() => {
-  socket.emit("get_mount_solar_state");
-}, 1000); // every 1 second
+  if (data.solar_az && data.solar_alt) {
+    sunDot.az = parseFloat(data.solar_az);
+    sunDot.alt = parseFloat(data.solar_alt);
+    drawSunPath();
+  }
+});
 
-// === Socket listener for mount/solar state ===
+// Mount state updates
+setInterval(() => socket.emit("get_mount_solar_state"), 1000);
+
 socket.on("mount_solar_state", (data) => {
-  const raSolar = document.getElementById("ra-solar");
+  const raSolar  = document.getElementById("ra-solar");
   const decSolar = document.getElementById("dec-solar");
-  const raMount = document.getElementById("ra-mount");
+  const raMount  = document.getElementById("ra-mount");
   const decMount = document.getElementById("dec-mount");
 
-  if (raSolar) raSolar.textContent = data.ra_solar || "--:--:--";
+  if (raSolar)  raSolar.textContent  = data.ra_solar  || "--:--:--";
   if (decSolar) decSolar.textContent = data.dec_solar || "--:--:--";
-  if (raMount) raMount.textContent = data.ra_mount || "--:--:--";
+  if (raMount)  raMount.textContent  = data.ra_mount  || "--:--:--";
   if (decMount) decMount.textContent = data.dec_mount || "--:--:--";
+
+  if (data.az_mount && data.alt_mount) {
+    mountDot.az = parseFloat(data.az_mount);
+    mountDot.alt = parseFloat(data.alt_mount);
+    drawSunPath();
+  }
 });
 
 // === SECTION: MOUNT CONTROL ===
@@ -166,14 +341,19 @@ parkBtn.addEventListener("click", () => {
   socket.emit("park_mount");
 });
 
+// Unpark Mount
+document.getElementById("unpark-mount").addEventListener("click", () => {
+  socket.emit("unpark_mount");
+});
+
 // Mount status and coordinates
 socket.on("mount_status", (status) => {
   mountStatus.textContent = status;
 });
 
 socket.on("mount_coordinates", (coords) => {
-  document.getElementById("ra-placeholder").textContent  = coords.ra ?? "--";
-  document.getElementById("dec-placeholder").textContent = coords.dec ?? "--";
+  document.getElementById("ra-mount").textContent = coords.ra ?? "--";
+  document.getElementById("dec-mount").textContent = coords.dec ?? "--";
 });
 
 
@@ -199,12 +379,14 @@ socket.on("nstep_position", (data) => {
 // === SECTION: SCIENCE CAMERA ===
 
 const img = document.getElementById("fc-preview");
-const piIp = img?.dataset.piIp;
 const indicator = document.getElementById("fc-status-indicator");
+let isPreviewRunning = false;
 let previewPoll = null;
 
 function startFcPreview() {
+  if (isPreviewRunning) return;
   socket.emit("start_fc_preview");
+  isPreviewRunning = true;
 
   img.classList.remove("opacity-50", "max-w-[300px]", "bg-gray-400");
 
@@ -227,7 +409,9 @@ function startFcPreview() {
 }
 
 function stopFcPreview() {
+  if (!isPreviewRunning) return;
   socket.emit("stop_fc_preview");
+  isPreviewRunning = false;
 
   if (previewPoll) clearInterval(previewPoll);
   previewPoll = null;
@@ -268,15 +452,29 @@ window.startFcPreview = startFcPreview;
 window.stopFcPreview = stopFcPreview;
 window.triggerFcCapture = triggerFcCapture;
 
+// === SECTION: DOME CAMERA STATUS INDICATOR ===
 
-// === SECTION: DOME CAMERA ===
+const domeDot = document.getElementById("dome-status-indicator");
 
-// Set dome cam stream src on page load
-const domeView = document.getElementById("dome-view");
-if (domeView && piIp) {
-  domeView.src = `http://${piIp}:8081/0/stream`;
+function updateDomeStatus() {
+  fetch("/ping_dome_status")
+    .then((res) => {
+      if (res.ok) {
+        domeDot.classList.remove("bg-red-500");
+        domeDot.classList.add("bg-green-500");
+      } else {
+        domeDot.classList.remove("bg-green-500");
+        domeDot.classList.add("bg-red-500");
+      }
+    })
+    .catch(() => {
+      domeDot.classList.remove("bg-green-500");
+      domeDot.classList.add("bg-red-500");
+    });
 }
 
+setInterval(updateDomeStatus, 5000);
+updateDomeStatus();
 
 // === SECTION: ARDUINO CONTROL ===
 
@@ -341,62 +539,86 @@ function setArduinoStatus(connected) {
   const text = document.getElementById("arduinoStatusText");
   if (!dot || !text) return;
 
+  dot.classList.remove("bg-green-500", "bg-gray-400", "animate-pulse", "bg-red-500");
+
   if (connected) {
-    dot.classList.remove("bg-gray-400", "animate-pulse");
     dot.classList.add("bg-green-500");
     text.textContent = "Connected";
   } else {
-    dot.classList.remove("bg-green-500");
-    dot.classList.add("bg-gray-400", "animate-pulse");
+    dot.classList.add("bg-red-500", "animate-pulse");
     text.textContent = "Disconnected";
   }
 }
 
 
-// === SECTION: FILE HANDLER ===
-function fetchFileList() {
-  const tableBody = document.getElementById("file-table-body");
-  const statusSpan = document.getElementById("file-status");
+// === SECTION: FILE HANDLER  ===
+const tableBody = document.getElementById("file-table-body");
+const statusSpan = document.getElementById("file-status");
 
+function renderFileList(files) {
   if (!tableBody || !statusSpan) return;
 
-  fetch("/get_file_list")
-    .then((response) => response.json())
-    .then((files) => {
-      tableBody.innerHTML = "";
+  tableBody.innerHTML = "";
 
-      let currentStatus = "Idle";
+  if (files.length === 0) {
+    const emptyRow = document.createElement("tr");
+    emptyRow.innerHTML = `
+      <td class="px-4 py-2 text-center text-gray-500" colspan="3">No files found</td>
+    `;
+    tableBody.appendChild(emptyRow);
+    statusSpan.textContent = "Idle";
+    return;
+  }
 
-      files.forEach((file) => {
-        const row = document.createElement("tr");
+  let currentStatus = "Idle";
 
-        // Assign row background color based on file status
-        let rowClass = "";
-        if (file.status === "Copied") rowClass = "bg-green-100";
-        else if (file.status === "Copying") rowClass = "bg-yellow-100";
-        else if (file.status === "Failed") rowClass = "bg-red-100";
+  files.forEach((file) => {
+    const row = document.createElement("tr");
 
-        row.className = rowClass;
+    let rowClass = "";
+    if (file.status === "Copied") rowClass = "bg-green-100";
+    else if (file.status === "Copying") rowClass = "bg-yellow-100";
+    else if (file.status === "Failed") rowClass = "bg-red-100";
 
-        row.innerHTML = `
-          <td class="px-4 py-2">${file.name}</td>
-          <td class="px-4 py-2">${file.size}</td>
-          <td class="px-4 py-2">${file.modified}</td>
-        `;
-        tableBody.appendChild(row);
+    row.className = rowClass;
 
-        if (file.status === "Copying" || file.status === "Failed") {
-          currentStatus = file.status;
-        }
-      });
+    row.innerHTML = `
+      <td class="px-4 py-2">${file.name}</td>
+      <td class="px-4 py-2">${file.size}</td>
+      <td class="px-4 py-2">${file.modified}</td>
+    `;
+    tableBody.appendChild(row);
 
-      statusSpan.textContent = currentStatus;
-    })
-    .catch((err) => {
-      console.error("Error fetching file list:", err);
-      statusSpan.textContent = "Error";
-    });
+    if (file.status === "Copying" || file.status === "Failed") {
+      currentStatus = file.status;
+    }
+  });
+
+  statusSpan.textContent = currentStatus;
 }
 
-window.addEventListener("load", fetchFileList);
-setInterval(fetchFileList, 5000);
+socket.on("file_watch_status", (data) => {
+  if (!data || !data.status || !statusSpan) return;
+
+  if (data.status === "connected") {
+    statusSpan.textContent = "Connected";
+    statusSpan.style.color = "green";
+  } else if (data.status === "disconnected") {
+    statusSpan.textContent = "Disconnected";
+    statusSpan.style.color = "red";
+  }
+});
+
+// Initial fetch as fallback (in case no socket event yet)
+fetch("/get_file_list")
+  .then((res) => res.json())
+  .then(renderFileList)
+  .catch((err) => {
+    console.error("Initial file list error:", err);
+    statusSpan.textContent = "Error";
+  });
+
+// === WebSocket listener ===
+socket.on("file_list_update", (files) => {
+  renderFileList(files);
+});

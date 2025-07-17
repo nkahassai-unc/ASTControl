@@ -5,6 +5,8 @@ import threading
 import time
 from utilities.indigo_json_client import IndigoJSONClient
 from modules.solar_module import SolarPosition
+from utilities.config import GEO_LAT, GEO_LON, GEO_ELEV, HOME_RA, HOME_DEC, MOUNT_PARKED
+from utilities.logger import emit_log
 
 _socketio = None  # Module-level SocketIO reference
 
@@ -18,10 +20,11 @@ class MountControl:
     def __init__(self, indigo_client):
         self.client = indigo_client
         #self.device = "Mount PMC Eight"
-        self.device = "Mount Simulator"
+        #self.device = "Mount Simulator"
+        self.device = "Mount Agent"
 
         self.solar = SolarPosition()
-        self.set_location(35.9121, -79.0558, 100)  # Chapel Hill, NC
+        self.set_location(GEO_LAT, GEO_LON, GEO_ELEV)
         self.tracking_active = False
         self.coord_monitor_active = False
 
@@ -32,10 +35,12 @@ class MountControl:
     def emit_status(self, message):
         if _socketio:
             _socketio.emit("mount_status", message)
+        emit_log(f"[STATUS] {message}")
 
     def emit_log(self, message):
         if _socketio:
             _socketio.emit("server_log", f"[MOUNT_MODULE] {message}")
+        emit_log(message)
 
     def _handle_number_vector(self, msg):
         if msg.get("name") == "MOUNT_EQUATORIAL_COORDINATES":
@@ -46,7 +51,28 @@ class MountControl:
                     self.last_coords["dec"] = item["value"]
 
             if _socketio:
-                _socketio.emit("mount_coordinates", self.last_coords)
+                _socketio.emit("mount_coordinates", {
+                    "ra": self.last_coords["ra"],
+                    "dec": self.last_coords["dec"],
+                    "ra_str": self.format_ra(self.last_coords["ra"]),
+                    "dec_str": self.format_dec(self.last_coords["dec"]),
+                })
+
+    def format_ra(self, ra):
+        """Convert RA in decimal hours to HH:MM:SS.ss format."""
+        hours = int(ra)
+        minutes = int((ra - hours) * 60)
+        seconds = (ra - hours - minutes / 60) * 3600
+        return f"{hours:02}:{minutes:02}:{seconds:05.2f}"
+
+    def format_dec(self, dec):
+        """Convert DEC in decimal degrees to ±DD:MM:SS.ss format."""
+        sign = "-" if dec < 0 else "+"
+        dec = abs(dec)
+        degrees = int(dec)
+        minutes = int((dec - degrees) * 60)
+        seconds = (dec - degrees - minutes / 60) * 3600
+        return f"{sign}{degrees:02}:{minutes:02}:{seconds:05.2f}"
 
     def set_location(self, latitude, longitude, elevation):
         try:
@@ -61,43 +87,59 @@ class MountControl:
                     ]
                 }
             }, quiet=True)
-            self.emit_log(f"Set geographic coordinates: lat={latitude}, lon={longitude}, elev={elevation}")
+            emit_log(f"[MOUNT] Set geographic coordinates: lat={latitude}, lon={longitude}, elev={elevation}")
         except Exception as e:
-            self.emit_log(f"[ERROR] Failed to set location: {e}")
-    
-    def track_sun(self, interval=5):
-        if self.tracking_active:
-            self.emit_log("Sun tracking already active.")
+            emit_log(f"[ERROR] Failed to set location: {e}")
+
+    def slew(self, direction, rate="solar"):
+        emit_log(f"[MOUNT] Slewing {direction.upper()} ({rate} rate)")
+
+        ra_vector = []
+        dec_vector = []
+
+        if direction == "north":
+            dec_vector = [{"name": "NORTH", "value": True}, {"name": "SOUTH", "value": False}]
+        elif direction == "south":
+            dec_vector = [{"name": "NORTH", "value": False}, {"name": "SOUTH", "value": True}]
+        elif direction == "east":
+            ra_vector = [{"name": "EAST", "value": True}, {"name": "WEST", "value": False}]
+        elif direction == "west":
+            ra_vector = [{"name": "EAST", "value": False}, {"name": "WEST", "value": True}]
+        else:
+            emit_log(f"[ERROR] Invalid slew direction: {direction}")
             return
 
-        self.tracking_active = True
-        self.emit_status("Started Solar Tracking")
+        if ra_vector:
+            self.client.send({
+                "newSwitchVector": {
+                    "device": self.device,
+                    "name": "MOUNT_MOTION_RA",
+                    "items": ra_vector
+                }
+            }, quiet=True)
 
-        def loop():
-            while self.tracking_active:
-                try:
-                    self.solar.update_solar_position()
-                    coords = self.solar.get_data()
-                    if coords["solar_alt"] == "Below":
-                        self.emit_status("Sun below horizon")
-                    else:
-                        ra, dec = self._get_equatorial_from_horizontal(
-                            coords["solar_alt"], coords["solar_az"]
-                        )
-                        self._slew_to_coords(ra, dec)
-                except Exception as e:
-                    self.emit_log(f"Solar tracking failed: {e}")
-                time.sleep(interval)
+        if dec_vector:
+            self.client.send({
+                "newSwitchVector": {
+                    "device": self.device,
+                    "name": "MOUNT_MOTION_DEC",
+                    "items": dec_vector
+                }
+            }, quiet=True)
 
-            self.emit_status("Stopped Solar Tracking")
-
-        threading.Thread(target=loop, daemon=True).start()
+        slew_rate = 1.0 if rate == "solar" else 0.5 if rate == "slow" else 2.0
+        self.client.send({
+            "newNumberVector": {
+                "device": self.device,
+                "name": "MOUNT_SLEW_RATE",
+                "items": [{"name": "SLEW_RATE", "value": slew_rate}]
+            }
+        }, quiet=True)
 
     def stop_tracking(self):
         self.tracking_active = False
 
     def _get_equatorial_from_horizontal(self, alt, az):
-        # Placeholder conversion
         return float(az), float(alt)
 
     def _slew_to_coords(self, ra, dec):
@@ -113,18 +155,18 @@ class MountControl:
             self.client.send({
                 "newSwitchVector": {
                     "device": self.device,
-                    "name": "MOUNT_ON_COORDINATES_SET",  # Alternative: "MOUNT_TRACKING"
+                    "name": "MOUNT_ON_COORDINATES_SET",
                     "items": [{"name": "ON_COORDINATES_SET", "value": True}]
                 }
             }, quiet=True)
 
-            self.emit_status(f"Slewing to RA: {ra}, DEC: {dec}")
+            emit_log(f"[MOUNT] Slewing to RA: {ra}, DEC: {dec}")
 
         except Exception as e:
-            self.emit_log(f"Slew to coords failed: {e}")
+            emit_log(f"[MOUNT] Slew to coords failed: {e}")
 
     def stop(self):
-        self.emit_status("Stopping Mount")
+        emit_log("[MOUNT] Stopping Mount")
         try:
             self.client.send({
                 "newSwitchVector": {
@@ -141,34 +183,41 @@ class MountControl:
                     "items": [{"name": "EAST", "value": False}, {"name": "WEST", "value": False}]
                 }
             }, quiet=True)
-            self.emit_log("Mount stopped successfully")
+            emit_log("[MOUNT] Mount stopped successfully")
 
         except Exception as e:
-            self.emit_log(f"Stop command failed: {e}")
+            emit_log(f"[MOUNT] Stop command failed: {e}")
 
     def park(self):
-        self.emit_status("Parking Mount")
+        emit_log("[MOUNT] Parking Mount")
         self.stop_tracking()
         try:
             self._slew_to_coords(0.0, 90.0)
             time.sleep(5)
             self.stop()
         except Exception as e:
-            self.emit_log(f"Park failed: {e}")
+            emit_log(f"Park failed: {e}")
 
     def unpark(self):
-        self.emit_status("Unparking Mount")
-        # fix later
+        emit_log("[MOUNT] Unparking Mount")
         try:
-            # Slew to last known coordinates or a default position
             if self.last_coords["ra"] is not None and self.last_coords["dec"] is not None:
                 self._slew_to_coords(self.last_coords["ra"], self.last_coords["dec"])
             else:
-                self._slew_to_coords(0.0, 0.0)  # Default position if no coords available
+                self._slew_to_coords(0.0, 0.0)
         except Exception as e:
-            self.emit_log(f"Unpark failed: {e}")
+            emit_log(f"[MOUNT] Unpark failed: {e}")
 
-    def get_coordinates(self):
+    def get_coordinates(self, emit=False):
+        if emit and _socketio:
+            ra = self.last_coords["ra"]
+            dec = self.last_coords["dec"]
+            _socketio.emit("mount_coordinates", {
+                "ra": ra,
+                "dec": dec,
+                "ra_str": self.format_ra(ra) if ra is not None else "--:--:--",
+                "dec_str": self.format_dec(dec) if dec is not None else "--:--:--",
+            })
         return self.last_coords
 
     def _start_coord_monitor(self):
@@ -184,7 +233,7 @@ class MountControl:
                         }
                     }, quiet=True)
                 except Exception as e:
-                    self.emit_log(f"[ERROR] Coord monitor: {e}")
+                    emit_log(f"[ERROR] Coord monitor: {e}")
                 time.sleep(1)
 
         threading.Thread(target=monitor, daemon=True).start()

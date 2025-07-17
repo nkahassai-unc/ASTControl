@@ -1,6 +1,8 @@
 # Flask App for Automated Solar Telescope Control
 
 import warnings
+
+from modules import solar_module
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import logging
@@ -15,11 +17,12 @@ from utilities.network_utils import run_pi_ssh_command
 
 from modules.weather_module import WeatherForecast
 from modules.solar_module import SolarPosition
-
-from modules.file_module import start_file_monitoring, get_file_list
+from modules import file_module
 
 from modules.server_module import IndigoRemoteServer
 from modules.server_module import indigo_client, start_indigo_client
+from utilities.logger import emit_log, set_socketio as set_log_socketio, get_log_history
+
 
 from modules.nstep_module import NStepFocuser, set_socketio as set_nstep_socketio
 from modules.mount_module import MountControl, set_socketio as set_mount_socketio
@@ -29,15 +32,19 @@ from modules import arduino_module
 # === App Init ===
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+set_log_socketio(socketio)
 
 # === Module Instances ===
 weather_forecast = WeatherForecast()
 solar_calculator = SolarPosition()
+solar_module.set_socketio(socketio)
 
 indigo = IndigoRemoteServer(RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD)
 
 mount = MountControl(indigo_client=indigo_client)
 nstep = NStepFocuser(indigo_client=indigo_client)
+
+file_module.set_socketio_instance(socketio)
 
 try:
     start_indigo_client()
@@ -51,33 +58,62 @@ set_mount_socketio(socketio)
 arduino_module.set_socketio(socketio)
 
 # === Routes ===
+# Main Web Page
 @app.route('/')
 def index():
     return render_template('index.html', pi_ip=RASPBERRY_PI_IP)
 
+@socketio.on("connect")
+def send_log_history():
+    for msg in get_log_history():
+        socketio.emit("server_log", msg)
+
+# File Handlers
+@app.route("/get_file_list")
+def get_file_list_route():
+    files = file_module.get_file_list()
+
+    # Inject live status for frontend coloring (optional if already included)
+    for f in files:
+        f["status"] = FILE_STATUS.get(f["name"], "Copied")
+    return jsonify(files)
+
+
 # === WebSocket Handlers ===
 
-# Weather Handler
+# === Weather Handlers ===
 @socketio.on('get_weather')
 def send_weather_now():
     socketio.emit("update_weather", weather_forecast.get_data())
 
-# Solar Handler
+
+# === Solar Handlers ===
 @socketio.on('get_solar')
 def send_solar_now():
+    # Sends current solar az/alt
     socketio.emit("update_solar", solar_calculator.get_data())
 
 @socketio.on("get_mount_solar_state")
 def handle_get_mount_solar_state():
     solar_coords = solar_calculator.get_solar_equatorial()
-    mount_coords = mount.get_coordinates()  # You’ll define this separately
+    mount_coords = mount.get_coordinates()  # assumes mount module supports this
     socketio.emit("mount_solar_state", {
         **solar_coords,
         **mount_coords
     })
 
+@socketio.on("get_solar_path")
+def handle_get_solar_path():
+    path = solar_calculator.get_full_day_path()  # internally cached now
+    socketio.emit("solar_path_data", path)
 
-# INDIGO Server Handlers
+@app.route("/get_solar_path")
+def get_solar_path():
+    path = solar_calculator.get_full_day_path()  # internally cached now
+    return jsonify(path)
+
+
+# === INDIGO Server Handlers ===
 @socketio.on('start_indigo')
 def handle_start_indigo():
     indigo.start(lambda msg: socketio.emit("server_log", msg))
@@ -85,7 +121,7 @@ def handle_start_indigo():
 @socketio.on('stop_indigo')
 def handle_stop_indigo():
     result = indigo.stop()
-    socketio.emit("server_log", result.get("stdout", ""))
+    emit_log(result.get("stdout", ""))
 
 @socketio.on('check_indigo_status')
 def handle_check_indigo_status():
@@ -95,7 +131,8 @@ def handle_check_indigo_status():
         "ip": RASPBERRY_PI_IP if is_up else None
     })
 
-# Mount Handlers
+
+# === Mount Handlers ===
 @socketio.on("get_mount_coordinates")
 def handle_get_mount_coordinates():
     coords = mount.get_coordinates()
@@ -121,7 +158,7 @@ def handle_park_mount():
 def handle_unpark_mount():
     mount.unpark()
 
-# nSTEP Focuser Handlers
+# === nSTEP Focuser Handlers ===
 @socketio.on("nstep_move")
 def handle_nstep_move(data):
     direction = data.get("direction")
@@ -132,24 +169,14 @@ def handle_nstep_move(data):
 def handle_get_nstep_position():
     nstep.get_position()
 
-
-# File Handlers
-@app.route("/get_file_list")
-def get_file_list_route():
-    try:
-        return jsonify(get_file_list())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# Arduino Handlers
+# === Arduino Handlers ===
 @socketio.on('set_dome')
 def handle_set_dome(data):
     state_cmd = data.get("state")  # should be "open" or "close"
     if state_cmd and arduino_module.set_dome(state_cmd):
-        socketio.emit("dome_state", arduino_module.get_dome())
+        emit_log("dome_state", arduino_module.get_dome())
     else:
-        socketio.emit("server_log", f"⚠️ Failed to set dome state: {state_cmd}")
+        emit_log(f"⚠️ Failed to set dome state: {state_cmd}")
 
 @socketio.on('set_etalon')
 def handle_set_etalon(data):
@@ -161,55 +188,77 @@ def handle_set_etalon(data):
             "value": arduino_module.get_etalon(index)
         })
     else:
-        socketio.emit("server_log", f"⚠️ Failed to set etalon {index} to {value}")
+        emit_log(f"⚠️ Failed to set etalon {index} to {value}")
 
 @socketio.on('get_arduino_state')
 def handle_get_arduino_state():
     state = arduino_module.get_state()
     socketio.emit("arduino_state", state)
 
-# Science Camera Handlers
+# === Science Camera Handlers ===
 preview_running = False  # Global state
 
 @socketio.on("start_fc_preview")
 def handle_start_fc_preview():
+    global preview_running
+    emit_log("[FireCapture] ✅ Preview and HTTP server started.")
     try:
         run_pi_ssh_command("/home/pi/fc_stream/start_fc_http_server.sh")
         run_pi_ssh_command("/home/pi/fc_stream/fc_preview_stream.sh &")
-        socketio.emit("server_log", "✅ FireCapture preview and HTTP server started.")
+        preview_running = True
     except Exception as e:
-        socketio.emit("server_log", f"❌ Preview failed: {e}")
+        emit_log(f"[FireCapture] ❌ Preview failed: {e}")
 
 @socketio.on("stop_fc_preview")
 def handle_stop_fc_preview():
+    global preview_running
+    emit_log("[FireCapture] 🛑 Stopping preview and HTTP server...")
+    if not preview_running:
+        return
     try:
         run_pi_ssh_command("pkill -f fc_preview_stream.sh")
         run_pi_ssh_command("pkill -f 'http.server 8082'")
-        socketio.emit("server_log", "🛑 FireCapture preview stopped.")
+        preview_running = False
     except Exception as e:
-        socketio.emit("server_log", f"❌ Failed to stop preview: {e}")
+        emit_log(f"[FireCapture] ❌ Failed to stop preview: {e}")
 
 @socketio.on("trigger_fc_capture")
 def handle_fc_capture():
     try:
         run_pi_ssh_command("cd /home/pi/fc_capture && DISPLAY=:0 ./trigger_fc_script.sh")
-        socketio.emit("server_log", "📸 Capture triggered.")
+        emit_log("📸 [FireCapture] Capture triggered.")
     except Exception as e:
-        socketio.emit("server_log", f"❌ Capture failed: {e}")
+        emit_log(f"❌ [FireCapture] Capture failed: {e}")
 
 @socketio.on("get_fc_status")
 def handle_get_fc_status():
     socketio.emit("fc_preview_status", preview_running)
 
+# === Dome Camera Handler ===
+@app.route("/ping_dome_status")
+def ping_dome_status():
+    try:
+        ip = RASPBERRY_PI_IP
+        url = f"http://{ip}:8080/"
+        resp = requests.get(url, timeout=2)
+        if resp.status_code == 200:
+            return Response("OK", status=200)
+        return Response("Unavailable", status=503)
+    except Exception as e:
+        return Response(f"Error: {e}", status=502)
+    
 # === Start App ===
 if __name__ == '__main__':
     weather_forecast.start_monitor(socketio, interval=600)
     solar_calculator.start_monitor(socketio, interval=5)
     arduino_module.start_monitor(interval=1)
-    socketio.start_background_task(start_file_monitoring, 5)
 
-    log = logging.getLogger('werkzeug')
-    log.setLevel(logging.ERROR)
+    # Launch file monitor in background via SocketIO
+    socketio.start_background_task(file_module.start_file_monitoring, 5)
+    emit_log("[APP] Background tasks started.")
+
+    werkzeug_log = logging.getLogger('werkzeug')
+    werkzeug_log.setLevel(logging.ERROR)
 
     print("Starting Flask app on http://localhost:5001...")
-    socketio.run(app, host='0.0.0.0', port=5001)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False, use_reloader=False)
