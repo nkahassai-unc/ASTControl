@@ -5,9 +5,16 @@ RASPBERRY_PI_IP = "192.168.1.147"  # KC IP
 SSH_USERNAME = "pi"
 SSH_PASSWORD = "raspberry"
 
-GEO_LAT = 35.9132
-GEO_LON = -79.0558
-GEO_ELEV = 148  # meters
+# DEFAULT GEOGRAPHIC COORDINATES (Chapel Hill, NC)
+GEO_LAT  = 35.9132
+GEO_LON  = -79.0558
+GEO_ELEV = 148  # m
+
+# LOCATION PROFILES
+LOCATION_PROFILES = {
+    "chapel_hill": {"lat": 35.9132, "lon": -79.0558, "elev": 148, "tz": "America/New_York"},
+    "kansas_city": {"lat": 39.0997, "lon": -94.5786, "elev": 270, "tz": "America/Chicago"},
+}
 
 # WEATHER DATA
 DEFAULT_WEATHER_DATA = {
@@ -29,13 +36,20 @@ DEFAULT_SOLAR_DATA = {
 }
 
 solar_cache = {
-    "path": None
+    "date_sun": None,
+    "path_sun": None,
+    "date_moon": None,
+    "path_moon": None
 }
 
 # MOUNT COORDINATES
 HOME_RA = "00:00:00"
 HOME_DEC = "+00:00:00"
 MOUNT_PARKED = None  # Assume nothing at start
+PARK_RA = 0.0
+PARK_DEC = 90.0
+LAST_RA = None
+LAST_DEC = None
 
 # ARDUINO SHARED STATE
 ARDUINO_STATE = {

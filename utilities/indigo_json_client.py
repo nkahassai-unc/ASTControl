@@ -1,4 +1,4 @@
-# Indigo JSON Client
+# INDIGO JSON Client
 # Connects to INDIGO server using JSON protocol over TCP.
 
 import socket

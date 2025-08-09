@@ -4,7 +4,7 @@
 import threading
 import time
 
-from modules.solar_module import SolarPosition
+from old.solar_module import SolarPosition
 from modules.mount_module import MountControl
 from utilities.config import GEO_LAT, GEO_LON, GEO_ELEV
 from utilities.logger import emit_log

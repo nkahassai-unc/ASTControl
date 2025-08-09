@@ -1,46 +1,44 @@
 # Flask App for Automated Solar Telescope Control
 
 import warnings
-
-from modules import solar_module
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import logging
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 import requests
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response, jsonify, send_from_directory
+import os
 from flask_socketio import SocketIO
 
-from utilities.config import RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD, FILE_STATUS
+from utilities.config import (
+    RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD, FILE_STATUS,
+    LOCATION_PROFILES
+)
 from utilities.network_utils import run_pi_ssh_command
 
 from modules.weather_module import WeatherForecast
-from modules.solar_module import SolarPosition
+from modules.astro_module import AstroPosition
+
 from modules import file_module
 
 from modules.server_module import IndigoRemoteServer
 from modules.server_module import indigo_client, start_indigo_client
 from utilities.logger import emit_log, set_socketio as set_log_socketio, get_log_history
 
-
 from modules.nstep_module import NStepFocuser, set_socketio as set_nstep_socketio
 from modules.mount_module import MountControl, set_socketio as set_mount_socketio
 from modules import arduino_module
 
-
 # === App Init ===
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 set_log_socketio(socketio)
 
 # === Module Instances ===
-weather_forecast = WeatherForecast()
-solar_calculator = SolarPosition()
-solar_module.set_socketio(socketio)
-
+weather_forecast = WeatherForecast(profile="chapel_hill")
+astro = AstroPosition()
 indigo = IndigoRemoteServer(RASPBERRY_PI_IP, SSH_USERNAME, SSH_PASSWORD)
-
 mount = MountControl(indigo_client=indigo_client)
 nstep = NStepFocuser(indigo_client=indigo_client)
 
@@ -51,17 +49,20 @@ try:
 except Exception as e:
     print(f"[APP] Warning: INDIGO client failed to start — {e}")
 
-
 # Attach shared socket
 set_nstep_socketio(socketio)
 set_mount_socketio(socketio)
 arduino_module.set_socketio(socketio)
 
 # === Routes ===
-# Main Web Page
 @app.route('/')
 def index():
     return render_template('index.html', pi_ip=RASPBERRY_PI_IP)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'ast_fav.png', mimetype='image/png')
 
 @socketio.on("connect")
 def send_log_history():
@@ -72,48 +73,60 @@ def send_log_history():
 @app.route("/get_file_list")
 def get_file_list_route():
     files = file_module.get_file_list()
-
-    # Inject live status for frontend coloring (optional if already included)
     for f in files:
         f["status"] = FILE_STATUS.get(f["name"], "Copied")
     return jsonify(files)
 
-
-# === WebSocket Handlers ===
-
-# === Weather Handlers ===
+# === Weather ===
 @socketio.on('get_weather')
 def send_weather_now():
     socketio.emit("update_weather", weather_forecast.get_data())
 
-
-# === Solar Handlers ===
+# === Astro (Sun + Moon) ===
 @socketio.on('get_solar')
-def send_solar_now():
-    # Sends current solar az/alt
-    socketio.emit("update_solar", solar_calculator.get_data())
+def send_astro_now():
+    # unified payload mapped to your existing solar_* keys
+    socketio.emit("astro_update", astro.build_frontend_payload())
 
 @socketio.on("get_mount_solar_state")
-def handle_get_mount_solar_state():
-    solar_coords = solar_calculator.get_solar_equatorial()
-    mount_coords = mount.get_coordinates()  # assumes mount module supports this
-    socketio.emit("mount_solar_state", {
-        **solar_coords,
-        **mount_coords
-    })
+def handle_get_mount_target_state():
+    mode = getattr(mount, "target_mode", "sun").lower()
+    eq = astro.get_equatorial(mode)  # {"ra_str","dec_str"}
+
+    mount_coords = mount.get_coordinates()
+    formatted = {
+        # keep legacy keys that the UI already reads
+        "ra_solar": eq.get("ra_str"),
+        "dec_solar": eq.get("dec_str"),
+        "ra_mount": mount.format_ra(mount_coords["ra"]) if mount_coords["ra"] is not None else None,
+        "dec_mount": mount.format_dec(mount_coords["dec"]) if mount_coords["dec"] is not None else None,
+    }
+
+    altaz = mount.compute_altaz()
+    if altaz:
+        formatted["alt_mount"] = round(altaz[0], 2)
+        formatted["az_mount"]  = round(altaz[1], 2)
+
+    socketio.emit("mount_solar_state", formatted)
+
+# Paths
+@app.route("/get_solar_path")
+def get_solar_path():
+    return jsonify(astro.get_full_day_path(target="sun"))
 
 @socketio.on("get_solar_path")
 def handle_get_solar_path():
-    path = solar_calculator.get_full_day_path()  # internally cached now
-    socketio.emit("solar_path_data", path)
+    socketio.emit("solar_path_data", astro.get_full_day_path(target="sun"))
 
-@app.route("/get_solar_path")
-def get_solar_path():
-    path = solar_calculator.get_full_day_path()  # internally cached now
-    return jsonify(path)
+@app.route("/get_moon_path")
+def get_moon_path():
+    return jsonify(astro.get_full_day_path(target="moon"))
 
+@socketio.on("get_moon_path")
+def handle_get_moon_path():
+    socketio.emit("moon_path_data", astro.get_full_day_path(target="moon"))
 
-# === INDIGO Server Handlers ===
+# === INDIGO Server ===
 @socketio.on('start_indigo')
 def handle_start_indigo():
     indigo.start(lambda msg: socketio.emit("server_log", msg))
@@ -126,13 +139,9 @@ def handle_stop_indigo():
 @socketio.on('check_indigo_status')
 def handle_check_indigo_status():
     is_up = indigo.check_status()
-    socketio.emit("indigo_status", {
-        "running": is_up,
-        "ip": RASPBERRY_PI_IP if is_up else None
-    })
+    socketio.emit("indigo_status", {"running": is_up, "ip": RASPBERRY_PI_IP if is_up else None})
 
-
-# === Mount Handlers ===
+# === Mount ===
 @socketio.on("get_mount_coordinates")
 def handle_get_mount_coordinates():
     coords = mount.get_coordinates()
@@ -148,7 +157,10 @@ def handle_stop_mount():
 
 @socketio.on("track_sun")
 def handle_track_sun():
-    mount.track_sun()
+    mount.set_target("sun")
+    astro.set_target_mode("sun")  # stays in sync with mount
+    socketio.emit("astro_update", astro.build_frontend_payload())
+    mount.emit_status("Target set to Sun")
 
 @socketio.on("park_mount")
 def handle_park_mount():
@@ -158,21 +170,63 @@ def handle_park_mount():
 def handle_unpark_mount():
     mount.unpark()
 
-# === nSTEP Focuser Handlers ===
+# === Target & Location Toggles ===
+@socketio.on("set_target")
+def handle_set_target(data):
+    mode = str((data or {}).get("mode", "sun")).lower()
+    mount.set_target(mode)
+    astro.set_target_mode(mode)  # <<< keep astro payload mapping in sync
+    socketio.emit("astro_update", astro.build_frontend_payload())
+
+@socketio.on("toggle_target")
+def handle_toggle_target():
+    mount.toggle_target()
+    astro.set_target_mode(getattr(mount, "target_mode", "sun"))  # <<<
+    socketio.emit("astro_update", astro.build_frontend_payload())
+
+@socketio.on("set_location_profile")
+def handle_set_location_profile(data):
+    profile = (data or {}).get("profile", "chapel_hill")
+    mount.set_location_profile(profile)
+
+    weather_forecast.use_profile(profile)
+    weather_forecast.refresh_now(socketio)
+
+    prof = LOCATION_PROFILES.get(profile, {})
+    if isinstance(prof, dict):
+        lat, lon, elev = prof.get("lat"), prof.get("lon"), prof.get("elev")
+    elif isinstance(prof, (list, tuple)) and len(prof) >= 3:
+        lat, lon, elev = prof[0], prof[1], prof[2]
+    else:
+        lat = lon = elev = None
+
+    if None not in (lat, lon, elev):
+        astro.set_observer(lat, lon, elev)
+        astro.set_location_profile_label(profile)
+        astro.clear_path_cache()  # <<< ensure new paths recompute for the new site
+
+    socketio.emit("astro_update", astro.build_frontend_payload())
+
+@socketio.on("toggle_location_profile")
+def handle_toggle_location_profile():
+    newp = "kansas_city" if getattr(mount, "location_profile", "chapel_hill") == "chapel_hill" else "chapel_hill"
+    handle_set_location_profile({"profile": newp})
+
+# === nSTEP Focuser ===
 @socketio.on("nstep_move")
 def handle_nstep_move(data):
     direction = data.get("direction")
     nstep.move(direction)
-    nstep.get_position()  # Optionally request update right after move
+    nstep.get_position()
 
 @socketio.on("get_nstep_position")
 def handle_get_nstep_position():
     nstep.get_position()
 
-# === Arduino Handlers ===
+# === Arduino ===
 @socketio.on('set_dome')
 def handle_set_dome(data):
-    state_cmd = data.get("state")  # should be "open" or "close"
+    state_cmd = data.get("state")
     if state_cmd and arduino_module.set_dome(state_cmd):
         emit_log("dome_state", arduino_module.get_dome())
     else:
@@ -183,10 +237,7 @@ def handle_set_etalon(data):
     index = int(data.get("index", 0))
     value = int(data.get("value", 90))
     if arduino_module.set_etalon(index, value):
-        socketio.emit("etalon_position", {
-            "index": index,
-            "value": arduino_module.get_etalon(index)
-        })
+        socketio.emit("etalon_position", {"index": index, "value": arduino_module.get_etalon(index)})
     else:
         emit_log(f"⚠️ Failed to set etalon {index} to {value}")
 
@@ -195,24 +246,24 @@ def handle_get_arduino_state():
     state = arduino_module.get_state()
     socketio.emit("arduino_state", state)
 
-# === Science Camera Handlers ===
-preview_running = False  # Global state
+# === Science Camera ===
+preview_running = False
 
 @socketio.on("start_fc_preview")
 def handle_start_fc_preview():
     global preview_running
-    emit_log("[FireCapture] ✅ Preview and HTTP server started.")
+    emit_log("[FIRECAPTURE] ✅ Preview and HTTP server started.")
     try:
         run_pi_ssh_command("/home/pi/fc_stream/start_fc_http_server.sh")
         run_pi_ssh_command("/home/pi/fc_stream/fc_preview_stream.sh &")
         preview_running = True
     except Exception as e:
-        emit_log(f"[FireCapture] ❌ Preview failed: {e}")
+        emit_log(f"[FIRECAPTURE] ❌ Preview failed: {e}")
 
 @socketio.on("stop_fc_preview")
 def handle_stop_fc_preview():
     global preview_running
-    emit_log("[FireCapture] 🛑 Stopping preview and HTTP server...")
+    emit_log("[FIRECAPTURE] 🛑 Stopping preview and HTTP server...")
     if not preview_running:
         return
     try:
@@ -220,7 +271,7 @@ def handle_stop_fc_preview():
         run_pi_ssh_command("pkill -f 'http.server 8082'")
         preview_running = False
     except Exception as e:
-        emit_log(f"[FireCapture] ❌ Failed to stop preview: {e}")
+        emit_log(f"[FIRECAPTURE] ❌ Failed to stop preview: {e}")
 
 @socketio.on("trigger_fc_capture")
 def handle_fc_capture():
@@ -228,13 +279,13 @@ def handle_fc_capture():
         run_pi_ssh_command("cd /home/pi/fc_capture && DISPLAY=:0 ./trigger_fc_script.sh")
         emit_log("📸 [FireCapture] Capture triggered.")
     except Exception as e:
-        emit_log(f"❌ [FireCapture] Capture failed: {e}")
+        emit_log(f"❌ [FIRECAPTURE] Capture failed: {e}")
 
 @socketio.on("get_fc_status")
 def handle_get_fc_status():
     socketio.emit("fc_preview_status", preview_running)
 
-# === Dome Camera Handler ===
+# === Dome Camera ping ===
 @app.route("/ping_dome_status")
 def ping_dome_status():
     try:
@@ -246,14 +297,13 @@ def ping_dome_status():
         return Response("Unavailable", status=503)
     except Exception as e:
         return Response(f"Error: {e}", status=502)
-    
+
 # === Start App ===
 if __name__ == '__main__':
     weather_forecast.start_monitor(socketio, interval=600)
-    solar_calculator.start_monitor(socketio, interval=5)
+    astro.start_monitor(socketio, interval=5)
     arduino_module.start_monitor(interval=1)
 
-    # Launch file monitor in background via SocketIO
     socketio.start_background_task(file_module.start_file_monitoring, 5)
     emit_log("[APP] Background tasks started.")
 
